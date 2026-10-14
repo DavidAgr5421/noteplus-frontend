@@ -67,7 +67,7 @@ export function LoginForm() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {errorMessage && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl" role="alert">
+            <div className="p-3 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/20 rounded-2xl" role="alert">
               {errorMessage}
             </div>
           )}
@@ -88,7 +88,7 @@ export function LoginForm() {
             autoComplete="current-password"
           />
           <div className="flex justify-end">
-            <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            <a href="/forgot-password" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
               ¿Olvidaste tu contraseña?
             </a>
           </div>
@@ -104,16 +104,16 @@ export function LoginForm() {
             {adminMode ? 'Salir del modo admin' : 'Modo admin'}
           </Button>
           {adminMode && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl p-2 text-center">
+            <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-400/20 rounded-2xl p-2 text-center">
               Modo admin temporal: usa {ADMIN_EMAIL} con su clave corta.
             </p>
           )}
         </form>
       </CardContent>
       <CardFooter className="justify-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-slate-400">
           ¿No tienes cuenta?{' '}
-          <a href="/register" className="text-blue-600 hover:underline font-medium">
+          <a href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             Regístrate
           </a>
         </p>

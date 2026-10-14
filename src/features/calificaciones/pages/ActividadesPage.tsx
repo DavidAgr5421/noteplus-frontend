@@ -1,13 +1,54 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, CardContent, Input, Modal } from '@/shared/ui';
 import { formatDate } from '@/shared/utils/helpers';
 import { useActividades, useCreateActividad, useUpdateActividad, useDeleteActividad, useFichaNotas, useSaveCalificaciones } from '../hooks/useCalificaciones';
 import { useFicha } from '@/features/fichas/hooks/useFichas';
+import { FichaHeaderCard } from '@/features/fichas/components/FichaHeaderCard';
 import { ActividadModal, NotasTable } from '../components/CalificacionesComponents';
 import { ExportDialog } from '@/features/importacion';
 import { ImportHint } from '@/features/importacion';
 import type { Actividad, ActividadFormData } from '../types';
+
+function StatGlyph({ d }: { d: string }) {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+    </svg>
+  );
+}
+
+const STAT_ICONS = {
+  actividades: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+  estudiantes: 'M16 19v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M9.5 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 19v-1a4 4 0 00-3-3.87M15.5 3.13a3.5 3.5 0 010 6.74',
+  promedio: 'M4 20V10M10 20V4M16 20v-7M21 20H3',
+  aprobacion: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+};
+
+/** Dato de informe con símbolo (sin tarjeta): círculo navy + valor + etiqueta. */
+function StatItem({ icon, value, label, title, valueClassName }: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+  title?: string;
+  valueClassName?: string;
+}) {
+  return (
+    <span className="flex items-center gap-2" title={title ?? label}>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="flex flex-col leading-tight">
+        <span className={`text-sm font-bold tabular-nums ${valueClassName ?? 'text-gray-900 dark:text-white'}`}>
+          {value}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+          {label}
+        </span>
+      </span>
+    </span>
+  );
+}
 
 export function ActividadesPage() {
   const { fichaId } = useParams<{ fichaId: string }>();
@@ -23,6 +64,26 @@ export function ActividadesPage() {
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  const LAYOUT_STORAGE_KEY = 'noteplus:actividades-layout';
+  const [vertical, setVertical] = useState(() => {
+    try {
+      return localStorage.getItem(LAYOUT_STORAGE_KEY) === 'vertical';
+    } catch {
+      return false;
+    }
+  });
+  const toggleLayout = () => {
+    setVertical((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(LAYOUT_STORAGE_KEY, next ? 'vertical' : 'horizontal');
+      } catch {
+        /* almacenamiento no disponible */
+      }
+      return next;
+    });
+  };
+
   const { data: actividades, isLoading } = useActividades(fichaId || '');
   const { data: ficha } = useFicha(fichaId || '');
   const { data: fichaNotas, isLoading: notasLoading, error: notasError } = useFichaNotas(fichaId || '');
@@ -33,6 +94,11 @@ export function ActividadesPage() {
 
   const finalizada = ficha?.finalizada || ficha?.archivada || false;
   const pendingChanges = useRef<Record<string, { actividadId: string; estudianteId: string; nota: number }>>({});
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // `mutate` es estable entre renders (el objeto del hook no), así se evita
+  // que el efecto de flush se re-ejecute en bucle.
+  const { mutate: saveMutate } = saveCalificaciones;
+  const [estadoGuardado, setEstadoGuardado] = useState<'idle' | 'pendiente' | 'guardando' | 'guardado'>('idle');
 
   const location = useLocation();
 
@@ -47,24 +113,58 @@ export function ActividadesPage() {
   const handleNotaChange = (actividadId: string, estudianteId: string, nota: number) => {
     const key = `${actividadId}-${estudianteId}`;
     pendingChanges.current[key] = { actividadId, estudianteId, nota };
+    setEstadoGuardado('pendiente');
+    if (saveTimers.current[actividadId]) clearTimeout(saveTimers.current[actividadId]);
+    saveTimers.current[actividadId] = setTimeout(() => flushActividad(actividadId), 800);
   };
 
-  const handleSaveNotas = () => {
-    const changes = Object.values(pendingChanges.current);
+  const flushActividad = (actividadId: string) => {
+    const changes = Object.values(pendingChanges.current).filter((c) => c.actividadId === actividadId);
     if (changes.length === 0) return;
-
-    const grouped = changes.reduce((acc, change) => {
-      if (!acc[change.actividadId]) acc[change.actividadId] = [];
-      acc[change.actividadId].push({ actividadId: change.actividadId, estudianteId: change.estudianteId, nota: change.nota });
-      return acc;
-    }, {} as Record<string, { actividadId: string; estudianteId: string; nota: number }[]>);
-
-    Object.entries(grouped).forEach(([actividadId, calificaciones]) => {
-      saveCalificaciones.mutate({ actividadId, calificaciones });
-    });
-
-    pendingChanges.current = {};
+    const keys = new Set(changes.map((c) => `${c.actividadId}-${c.estudianteId}`));
+    setEstadoGuardado('guardando');
+    saveMutate(
+      { actividadId, calificaciones: changes },
+      {
+        onSuccess: () => {
+          keys.forEach((k) => { delete pendingChanges.current[k]; });
+          setEstadoGuardado(Object.keys(pendingChanges.current).length === 0 ? 'guardado' : 'pendiente');
+        },
+        onError: () => setEstadoGuardado('pendiente'),
+      },
+    );
   };
+
+  const flushTodas = () => {
+    const ids = [...new Set(Object.values(pendingChanges.current).map((c) => c.actividadId))];
+    ids.forEach((id) => {
+      if (saveTimers.current[id]) {
+        clearTimeout(saveTimers.current[id]);
+        delete saveTimers.current[id];
+      }
+      flushActividad(id);
+    });
+  };
+
+  // Al cambiar de ficha o salir, intenta guardar lo pendiente (una sola vez).
+  useEffect(() => {
+    const timers = saveTimers.current;
+    const pending = pendingChanges.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+      const changes = Object.values(pending);
+      if (changes.length === 0) return;
+      const grouped: Record<string, typeof changes> = {};
+      changes.forEach((c) => {
+        if (!grouped[c.actividadId]) grouped[c.actividadId] = [];
+        grouped[c.actividadId].push(c);
+      });
+      pendingChanges.current = {};
+      Object.entries(grouped).forEach(([actividadId, calificaciones]) => {
+        saveMutate({ actividadId, calificaciones });
+      });
+    };
+  }, [fichaId, saveMutate]);
 
   const parentOptions = actividades?.filter(a => !a.parentId).map(a => ({ value: a.id, label: a.nombre })) || [];
 
@@ -85,6 +185,14 @@ export function ActividadesPage() {
   );
 
   const totalPorcentaje = rootActividades.reduce((sum, a) => sum + a.porcentaje, 0);
+
+  const statsNotas = useMemo(() => {
+    const est = fichaNotas?.estudiantes ?? [];
+    if (est.length === 0) return null;
+    const prom = est.reduce((s, e) => s + e.notaFinal, 0) / est.length;
+    const aprob = (est.filter((e) => e.estado === 'APROBADO').length / est.length) * 100;
+    return { prom, aprob, total: est.length };
+  }, [fichaNotas]);
 
   function BotonEditarFecha({ onClick, label }: { onClick: () => void; label: string }) {
     return (
@@ -163,6 +271,9 @@ export function ActividadesPage() {
 
   type ColKey = 'nombre' | 'fecha' | 'accion' | 'porcentaje';
   const DEFAULT_COL_WIDTHS: Record<ColKey, number> = { nombre: 300, fecha: 140, accion: 100, porcentaje: 110 };
+  // En modo vertical (mitad de pantalla) la tabla usa anchos relativos para adaptarse;
+  // en horizontal se usan los px guardados por el docente.
+  const REL_COL_WIDTHS_PCT: Record<ColKey, number> = { nombre: 40, fecha: 22, accion: 14, porcentaje: 24 };
   const COL_WIDTHS_STORAGE_KEY = 'noteplus:actividades-col-widths';
   const colMinWidths: Record<ColKey, number> = { nombre: 150, fecha: 80, accion: 60, porcentaje: 70 };
 
@@ -203,6 +314,7 @@ export function ActividadesPage() {
   };
 
   const startResize = (key: ColKey) => (e: ReactMouseEvent<HTMLSpanElement>) => {
+    if (vertical) return;
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
@@ -244,7 +356,7 @@ export function ActividadesPage() {
 
     return (
       <Fragment key={actividad.id}>
-        <tr className="group border-b border-gray-100 align-middle">
+        <tr className="group border-b border-gray-100 dark:border-white/10 align-middle">
           <td className="py-3 pl-4 pr-2">
             <div className="relative flex flex-col min-w-0">
               <div className="flex items-center gap-1 min-w-0">
@@ -253,7 +365,7 @@ export function ActividadesPage() {
                     onClick={() => toggleCollapsed(actividad.id)}
                     aria-expanded={!isCollapsed}
                     aria-label={isCollapsed ? `Mostrar subactividades de ${actividad.nombre}` : `Ocultar subactividades de ${actividad.nombre}`}
-                    className="p-1 text-gray-500 hover:text-gray-700 shrink-0"
+                    className="p-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 shrink-0"
                   >
                     <svg
                       className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
@@ -279,7 +391,7 @@ export function ActividadesPage() {
               <button
                 onClick={() => handleAddActividad(actividad.id)}
                 aria-label={`Añadir subactividad a ${actividad.nombre}`}
-                className="absolute left-7 top-full z-10 hidden w-fit items-center gap-1 rounded-b-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-green-700 shadow-sm hover:text-green-800 hover:underline group-hover:inline-flex group-focus-within:inline-flex"
+                className="absolute left-7 top-full z-10 hidden w-fit items-center gap-1 rounded-b-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 shadow-sm hover:text-green-800 dark:hover:text-green-200 hover:underline group-hover:inline-flex group-focus-within:inline-flex"
               >
                 <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-xs leading-none text-white" aria-hidden="true">
                   +
@@ -289,37 +401,37 @@ export function ActividadesPage() {
             </div>
           </td>
           <td className="px-2 py-3 text-center">
-            <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500">
+            <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
               {actividad.fechaLimite ? formatDate(actividad.fechaLimite) : '—'}
               <BotonEditarFecha onClick={() => handleEditActividad(actividad)} label={`Editar fecha límite de ${actividad.nombre}`} />
             </span>
           </td>
           <td className="px-2 py-3">{renderAcciones(actividad)}</td>
           <td className="px-2 py-3 text-center">
-            <span className="whitespace-nowrap tabular-nums text-sm text-gray-700">
+            <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
               {actividad.porcentaje.toFixed(1)}%
             </span>
           </td>
         </tr>
         {hasChildren && !isCollapsed && children.map(child => (
-          <tr key={child.id} className="border-b border-gray-100 align-middle">
+          <tr key={child.id} className="border-b border-gray-100 dark:border-white/10 align-middle">
             <td className="py-2 pl-4 pr-2">
-              <div className="ml-10 border-l-2 border-gray-200 pl-5">
+              <div className="ml-10 border-l-2 border-gray-200 dark:border-white/10 pl-5">
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="h-2 w-2 shrink-0 rounded-full border-2 border-green-400" aria-hidden="true" />
-                  <span className="truncate text-gray-800">{child.nombre}</span>
+                  <span className="truncate text-gray-800 dark:text-slate-100">{child.nombre}</span>
                 </span>
               </div>
             </td>
             <td className="px-2 py-2 text-center">
-              <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500">
+              <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
                 {child.fechaLimite ? formatDate(child.fechaLimite) : '—'}
                 <BotonEditarFecha onClick={() => handleEditActividad(child)} label={`Editar fecha límite de ${child.nombre}`} />
               </span>
             </td>
             <td className="px-2 py-2">{renderAcciones(child)}</td>
             <td className="px-2 py-2 text-center">
-              <span className="whitespace-nowrap tabular-nums text-sm text-gray-700">
+              <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
                 {child.porcentaje.toFixed(1)}%
               </span>
             </td>
@@ -376,44 +488,75 @@ export function ActividadesPage() {
   return (
     <div className="space-y-6">
       <ImportHint ctaLabel="Ir a estudiantes" onCta={() => navigate(`/fichas/${fichaId}/estudiantes`)} />
-      <div
-        className="rounded-3xl px-5 py-4"
-        style={{ background: 'linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0))' }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
-              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900">{ficha?.nombre || 'Ficha'}</p>
-              <span className="text-[1.8rem] font-bold leading-tight text-gray-400" aria-hidden="true">-</span>
-              {ficha?.codigo && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-lg font-medium text-gray-700">
-                  {ficha.codigo}
-                </span>
-              )}
-            </div>
-            {ficha?.trimestre && (
-              <p className="mt-1 text-sm text-gray-500">{ficha.trimestre}</p>
+
+      <div className="flex flex-col gap-3 px-4 lg:flex-row lg:items-center">
+        {ficha && (
+          <div className="min-w-0 lg:w-[30%] lg:shrink-0">
+            <FichaHeaderCard
+              ficha={ficha}
+              onBack={() => navigate(-1)}
+              onOpenDetalle={() => navigate(`/fichas/${fichaId}`)}
+            />
+          </div>
+        )}
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
+          <StatItem
+            icon={<span className="text-sm font-bold" aria-hidden="true">%</span>}
+            value={`${totalPorcentaje.toFixed(1)}%`}
+            label="total"
+            title="Porcentaje total asignado"
+            valueClassName={`tabular-nums ${totalPorcentaje === 100 ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}
+          />
+          <StatItem
+            icon={<StatGlyph d={STAT_ICONS.actividades} />}
+            value={String(rootActividades.length)}
+            label="actividades"
+            title={`${rootActividades.length} principales · ${(actividades || []).length - rootActividades.length} subactividades`}
+          />
+          <StatItem
+            icon={<StatGlyph d={STAT_ICONS.estudiantes} />}
+            value={fichaNotas ? String(fichaNotas.estudiantes.length) : '…'}
+            label="estudiantes"
+          />
+          <StatItem
+            icon={<StatGlyph d={STAT_ICONS.promedio} />}
+            value={statsNotas ? statsNotas.prom.toFixed(1) : '—'}
+            label="promedio"
+          />
+          <StatItem
+            icon={<StatGlyph d={STAT_ICONS.aprobacion} />}
+            value={statsNotas ? `${statsNotas.aprob.toFixed(0)}%` : '—'}
+            label="aprobación"
+          />
+          <button
+            type="button"
+            onClick={toggleLayout}
+            aria-pressed={vertical}
+            title={vertical ? 'Ver apilado' : 'Ver lado a lado'}
+            aria-label={vertical ? 'Ver actividades y calificaciones apiladas' : 'Ver actividades y calificaciones lado a lado'}
+            className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-900"
+          >
+            {vertical ? (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <rect x="4" y="4" width="16" height="7" rx="1.5" />
+                <rect x="4" y="13" width="16" height="7" rx="1.5" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <rect x="4" y="4" width="7" height="16" rx="1.5" />
+                <rect x="13" y="4" width="7" height="16" rx="1.5" />
+              </svg>
             )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5 pr-1">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900 text-green-400">
-              <span className="text-sm font-bold" aria-hidden="true">%</span>
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Total</span>
-              <span className={`text-sm font-semibold tabular-nums ${totalPorcentaje === 100 ? 'text-green-700' : 'text-yellow-700'}`}>
-                {totalPorcentaje.toFixed(1)}%
-              </span>
-            </span>
-          </div>
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className={vertical ? 'grid items-start gap-6 px-4 xl:grid-cols-2' : 'space-y-6 px-4'}>
+        <div className="min-w-0 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-xl font-bold text-gray-900">Actividades</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Actividades</h3>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {hayFiltros
               ? `${actividadesVisibles.length} de ${(actividades || []).length} actividades`
               : `${(actividades || []).length} actividades`}
@@ -460,16 +603,15 @@ export function ActividadesPage() {
           </button>
         </div>
       </div>
-
       <Card variant="default" padding="none">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 overflow-x-auto p-4 pb-8">
-            <table className="w-auto table-fixed border-collapse text-sm">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4 pb-8">
+            <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
-                <col style={{ width: colWidths.nombre }} />
-                <col style={{ width: colWidths.fecha }} />
-                <col style={{ width: colWidths.accion }} />
-                <col style={{ width: colWidths.porcentaje }} />
+                <col style={{ width: vertical ? `${REL_COL_WIDTHS_PCT.nombre}%` : colWidths.nombre }} />
+                <col style={{ width: vertical ? `${REL_COL_WIDTHS_PCT.fecha}%` : colWidths.fecha }} />
+                <col style={{ width: vertical ? `${REL_COL_WIDTHS_PCT.accion}%` : colWidths.accion }} />
+                <col style={{ width: vertical ? `${REL_COL_WIDTHS_PCT.porcentaje}%` : colWidths.porcentaje }} />
               </colgroup>
               <thead>
                 <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
@@ -482,27 +624,27 @@ export function ActividadesPage() {
               <tbody>
                 {!hayFiltros && rootActividades.map(actividad => renderActividad(actividad))}
                 {hayFiltros && actividadesVisibles.map(a => (
-                  <tr key={a.id} className="border-b border-gray-100 align-middle">
+                  <tr key={a.id} className="border-b border-gray-100 dark:border-white/10 align-middle">
                     <td className="py-3 pl-4 pr-2">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="h-2 w-2 shrink-0 rounded-full border-2 border-green-600" aria-hidden="true" />
                         <div className="min-w-0">
                           <span className="block truncate font-medium">{a.nombre}</span>
                           {a.parentId && (
-                            <span className="block truncate text-xs text-gray-500">Sub de {nombresPadre.get(a.parentId) || '…'}</span>
+                            <span className="block truncate text-xs text-gray-500 dark:text-slate-400">Sub de {nombresPadre.get(a.parentId) || '…'}</span>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-2 py-3 text-center">
-                      <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500">
+                      <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
                         {a.fechaLimite ? formatDate(a.fechaLimite) : '—'}
                         <BotonEditarFecha onClick={() => handleEditActividad(a)} label={`Editar fecha límite de ${a.nombre}`} />
                       </span>
                     </td>
                     <td className="px-2 py-3">{renderAcciones(a)}</td>
                     <td className="px-2 py-3 text-center">
-                      <span className="whitespace-nowrap tabular-nums text-sm text-gray-700">
+                      <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
                         {a.porcentaje.toFixed(1)}%
                       </span>
                     </td>
@@ -510,7 +652,7 @@ export function ActividadesPage() {
                 ))}
                 {!hayFiltros && rootActividades.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-500">
+                    <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-slate-400">
                       <p>No hay actividades definidas</p>
                       <Button className="mt-4" onClick={() => { setIsSubactividad(false); setSelectedParentId(null); setEditingActividad(null); setActividadModalOpen(true); }}>
                         Crear primera actividad
@@ -521,11 +663,11 @@ export function ActividadesPage() {
                 {hayFiltros && actividadesVisibles.length === 0 && (
                   <tr>
                     <td colSpan={4} className="py-8 text-center">
-                      <p className="text-gray-500">Sin resultados para la búsqueda o filtros aplicados</p>
+                      <p className="text-gray-500 dark:text-slate-400">Sin resultados para la búsqueda o filtros aplicados</p>
                       <button
                         type="button"
                         onClick={limpiarFiltros}
-                        className="mt-2 text-sm font-medium text-blue-600 hover:underline"
+                        className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         Limpiar búsqueda y filtros
                       </button>
@@ -534,11 +676,16 @@ export function ActividadesPage() {
                 )}
                 {!hayFiltros && rootActividades.length > 0 && (
                   <tr>
-                    <td className="px-4 pt-3 font-bold text-gray-900">Total</td>
+                    <td className="px-4 pt-3 font-bold text-gray-900 dark:text-white">Total</td>
                     <td />
                     <td />
-                    <td className={`px-2 pt-3 text-center font-bold tabular-nums whitespace-nowrap ${totalPorcentaje === 100 ? 'text-green-700' : 'text-yellow-700'}`}>
-                      {totalPorcentaje.toFixed(1)}%
+                    <td className="px-2 pt-3 text-center">
+                      <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-[10px] font-bold text-green-400" aria-hidden="true">%</span>
+                        <span className={`font-bold tabular-nums ${totalPorcentaje === 100 ? 'text-green-700' : 'text-yellow-700'}`}>
+                          {totalPorcentaje.toFixed(1)}%
+                        </span>
+                      </span>
                     </td>
                   </tr>
                 )}
@@ -547,19 +694,36 @@ export function ActividadesPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div aria-hidden="true" className="h-px bg-black" />
-
-      <div id="seccion-calificaciones" className="flex scroll-mt-24 flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+        </div>
+        <div className={vertical ? 'min-w-0 space-y-4' : 'space-y-6'}>
+      <div id="seccion-calificaciones" className="flex scroll-mt-24 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-xl font-bold text-gray-900">Calificaciones</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Calificaciones</h3>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {fichaNotas
               ? `${fichaNotas.estudiantes.length} estudiante${fichaNotas.estudiantes.length === 1 ? '' : 's'}`
               : 'Cargando…'}
           </p>
         </div>
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => { if (estadoGuardado === 'pendiente') flushTodas(); }}
+            disabled={estadoGuardado !== 'pendiente'}
+            title={estadoGuardado === 'pendiente' ? 'Guardar ahora' : 'Estado del guardado automático'}
+            aria-label={estadoGuardado === 'pendiente' ? 'Guardar cambios ahora' : `Guardado automático: ${estadoGuardado === 'guardando' ? 'guardando' : estadoGuardado === 'guardado' ? 'guardado' : 'sin cambios'}`}
+            className="flex h-9 items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/80 px-3 text-xs font-semibold text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:cursor-default dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
+          >
+            {estadoGuardado === 'guardando' ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" aria-hidden="true" />
+            ) : (
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${estadoGuardado === 'guardado' ? 'bg-green-500' : estadoGuardado === 'pendiente' ? 'animate-pulse bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-hidden="true"
+              />
+            )}
+            {estadoGuardado === 'guardando' ? 'Guardando…' : estadoGuardado === 'guardado' ? 'Guardado' : estadoGuardado === 'pendiente' ? 'Sin guardar' : 'Sin cambios'}
+          </button>
           <button
             type="button"
             onClick={() => setExportOpen((v) => !v)}
@@ -584,13 +748,13 @@ export function ActividadesPage() {
 
       <Card variant="default" padding="none">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 overflow-x-auto p-4">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4">
             {notasLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent" />
               </div>
             ) : notasError || !fichaNotas ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-gray-500 dark:text-slate-400">
                 <p>No hay datos de notas</p>
               </div>
             ) : (
@@ -598,13 +762,13 @@ export function ActividadesPage() {
                 data={fichaNotas}
                 finalizada={finalizada}
                 onNotaChange={handleNotaChange}
-                onSave={handleSaveNotas}
-                loading={saveCalificaciones.isPending}
               />
             )}
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
 
       <Modal
         isOpen={filtrosAbiertos}
@@ -616,7 +780,7 @@ export function ActividadesPage() {
         closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
         <div>
-          <p className="mb-2 text-sm font-medium text-gray-700">Tipo</p>
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-200">Tipo</p>
           <div className="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Filtrar por tipo de actividad">
             {([
               { valor: 'todas', etiqueta: 'Todas' },
@@ -629,7 +793,7 @@ export function ActividadesPage() {
                 onClick={() => setFiltroTipo(op.valor)}
                 aria-pressed={filtroTipo === op.valor}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  filtroTipo === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700'
+                  filtroTipo === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {op.etiqueta}
@@ -652,8 +816,8 @@ export function ActividadesPage() {
         titleClassName="text-lg font-semibold text-white"
         closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-sm text-gray-700">
-          ¿Eliminar <span className="font-bold text-gray-900">“{deletingActividad?.nombre}”</span>?
+        <p className="text-sm text-gray-700 dark:text-slate-200">
+          ¿Eliminar <span className="font-bold text-gray-900 dark:text-white">“{deletingActividad?.nombre}”</span>?
           Se eliminarán también sus subactividades y calificaciones.
         </p>
         <div className="mt-6 flex justify-end gap-3">

@@ -54,23 +54,23 @@ export function ClaseDetailModal({ isOpen, onClose, clase, onMarcarAsistencias }
         <div>
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xl font-bold text-gray-900">{fichaNombre}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{fichaNombre}</p>
               {fichaCodigo && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:text-slate-300">
                   {fichaCodigo}
                 </span>
               )}
             </div>
             {trimestre && (
-              <span className="shrink-0 text-sm font-medium text-gray-500">{trimestre}</span>
+              <span className="shrink-0 text-sm font-medium text-gray-500 dark:text-slate-400">{trimestre}</span>
             )}
           </div>
-          <p className="mt-1 text-sm text-gray-700">
+          <p className="mt-1 text-sm text-gray-700 dark:text-slate-300">
             Horario: <span className="font-medium tabular-nums">{claseHorarioLabel(clase, formato)}</span>
           </p>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Modalidad de la clase">
+          <div className="inline-flex rounded-full bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Modalidad de la clase">
             {(['PRESENCIAL', 'VIRTUAL'] as const).map((m) => (
               <button
                 key={m}
@@ -81,7 +81,7 @@ export function ClaseDetailModal({ isOpen, onClose, clase, onMarcarAsistencias }
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   modalidad === m
                     ? 'bg-navy-900 text-green-400'
-                    : 'text-gray-500 hover:text-gray-700'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {m === 'PRESENCIAL' ? 'Presencial' : 'Virtual'}
@@ -90,7 +90,7 @@ export function ClaseDetailModal({ isOpen, onClose, clase, onMarcarAsistencias }
           </div>
           <Button variant="navy" size="sm" onClick={() => onMarcarAsistencias(clase)}>Asistencias</Button>
         </div>
-        <p className="text-xs text-gray-500" role="status">
+        <p className="text-xs text-gray-500 dark:text-slate-400" role="status">
           {updateClase.isPending ? 'Guardando…' : saveError ? 'No se pudo guardar, reintentá' : 'El cambio se guarda automáticamente'}
         </p>
       </div>
@@ -123,8 +123,8 @@ export function JustificacionModal({ isOpen, estudianteNombre, initialValue, onC
       titleClassName="text-lg font-semibold text-white"
       closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
     >
-      <p className="text-xl font-bold text-gray-900">{estudianteNombre}</p>
-      <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor="justificacion-text">
+      <p className="text-xl font-bold text-gray-900 dark:text-white">{estudianteNombre}</p>
+      <label className="mt-3 block text-sm font-medium text-gray-700 dark:text-slate-300" htmlFor="justificacion-text">
         Motivo de la inasistencia
       </label>
       <textarea
@@ -133,7 +133,7 @@ export function JustificacionModal({ isOpen, estudianteNombre, initialValue, onC
         onChange={(e) => setValue(e.target.value)}
         rows={4}
         placeholder="Ej: Incapacidad médica, cita prioritaria…"
-        className="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        className="mt-1 w-full rounded-xl border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none dark:text-slate-100 placeholder-slate-400"
       />
       <div className="mt-4 flex justify-end">
         <Button variant="navy" size="sm" onClick={() => { onSave(value.trim()); onClose(); }}>Guardar justificación</Button>
@@ -181,10 +181,10 @@ export function ClaseCard({ clase, onClick, isToday, dimmed }: ClaseCardProps) {
         }`}
       />
       <span className="min-w-0 flex-1 leading-tight">
-        <span className="block truncate text-xs font-semibold text-gray-800 transition-colors group-hover:text-white">
+        <span className="block truncate text-xs font-semibold text-gray-800 dark:text-slate-100 transition-colors group-hover:text-white">
           {clase.ficha?.nombre || 'Ficha'} {clase.ficha?.codigo || ''}
         </span>
-        <span className="block text-[11px] tabular-nums text-gray-500 transition-colors group-hover:text-white">
+        <span className="block text-[11px] tabular-nums text-gray-500 dark:text-slate-400 transition-colors group-hover:text-white">
           {claseHorarioLabel(clase, formato)}
         </span>
       </span>
@@ -201,10 +201,10 @@ interface AsistenciaRowProps {
 export function AsistenciaRow({ asistencia, onChange, disabled }: AsistenciaRowProps) {
   return (
     <tr className={!asistencia.estudiante ? 'bg-gray-50' : ''}>
-      <td className="px-4 py-3 text-gray-900">
+      <td className="px-4 py-3 text-gray-900 dark:text-slate-100">
         {asistencia.estudiante?.nombre || 'Estudiante no encontrado'}
       </td>
-      <td className="px-4 py-3 text-gray-500">
+      <td className="px-4 py-3 text-gray-500 dark:text-slate-400">
         {asistencia.estudiante?.identificacion || '-'}
       </td>
       <td className="px-4 py-3">
@@ -277,21 +277,21 @@ export function AsistenciaModal({ isOpen, onClose, clase, asistencias, estudiant
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Asistencia - ${clase.ficha?.nombre}`} size="lg">
       <div className="mb-4">
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-slate-400">
           {formatDate(clase.fecha, 'long')} · {claseHorarioLabel(clase, formato)} · {clase.modalidad}
         </p>
       </div>
       <div className="overflow-x-auto max-h-96">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Estudiante</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Identificación</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Estado</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Justificación</th>
+            <tr className="border-b border-gray-200 dark:border-white/10">
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Estudiante</th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Identificación</th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Estado</th>
+              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Justificación</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-white/10">
             {estudiantes.map((est) => (
               <AsistenciaRow
                 key={est.id}
@@ -302,20 +302,15 @@ export function AsistenciaModal({ isOpen, onClose, clase, asistencias, estudiant
                   claseId: clase.id,
                 } as Asistencia & { estudiante: { id: string; nombre: string; identificacion: string } }}
                 onChange={handleChange}
-                disabled={loading || !clase.realizada}
+                disabled={loading}
               />
             ))}
           </tbody>
         </table>
       </div>
-      {!clase.realizada && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-2xl text-yellow-800 text-sm">
-          Esta clase está marcada como "no realizada". No se pueden registrar asistencias hasta que se marque como realizada.
-        </div>
-      )}
       <div className="flex justify-end gap-3 mt-4">
         <Button variant="ghost" onClick={onClose} disabled={loading}>Cancelar</Button>
-        <Button onClick={handleSave} loading={loading} disabled={!clase.realizada}>Guardar asistencias</Button>
+        <Button onClick={handleSave} loading={loading}>Guardar asistencias</Button>
       </div>
     </Modal>
   );

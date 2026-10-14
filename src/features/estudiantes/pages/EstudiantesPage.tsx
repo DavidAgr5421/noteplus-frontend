@@ -77,23 +77,22 @@ export function EstudiantesPage() {
     <div className="space-y-6">
       <ImportHint ctaLabel="Importar ahora" onCta={() => setImportModalOpen(true)} />
       <div
-        className="rounded-3xl px-5 py-4"
-        style={{ background: 'linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0))' }}
+        className="rounded-3xl px-5 py-4 panel-fade"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
-              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900">{ficha?.nombre || 'Ficha'}</p>
-              <span className="text-[1.8rem] font-bold leading-tight text-gray-400" aria-hidden="true">-</span>
+              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900 dark:text-white">{ficha?.nombre || 'Ficha'}</p>
+              <span className="text-[1.8rem] font-bold leading-tight text-gray-400 dark:text-slate-500" aria-hidden="true">-</span>
               {ficha?.codigo && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-lg font-medium text-gray-700">
+                <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-white/10 px-2.5 py-0.5 text-lg font-medium text-gray-700 dark:text-slate-300">
                   {ficha.codigo}
                 </span>
               )}
             </div>
             {ficha?.trimestre && (
-              <p className="mt-1 text-sm text-gray-500">{ficha.trimestre}</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{ficha.trimestre}</p>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2.5 pr-1">
@@ -103,8 +102,8 @@ export function EstudiantesPage() {
               </svg>
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Estudiantes</span>
-              <span className="text-sm font-semibold tabular-nums text-gray-800">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Estudiantes</span>
+              <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-slate-100">
                 {estudiantes?.length ?? 0}
               </span>
             </span>
@@ -114,8 +113,8 @@ export function EstudiantesPage() {
 
       <div className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-xl font-bold text-gray-900">Estudiantes</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Estudiantes</h3>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {`${filteredEstudiantes.length} ${filteredEstudiantes.length === 1 ? 'estudiante' : 'estudiantes'}`}
           </p>
         </div>
@@ -178,13 +177,13 @@ export function EstudiantesPage() {
 
       <Card variant="default" padding="none">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 overflow-x-auto p-4">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4">
             {isLoading ? (
               <div className="flex h-32 items-center justify-center">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
               </div>
             ) : paginatedEstudiantes.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-gray-500 dark:text-slate-400">
                 <p>{search ? `Sin resultados para “${search}”.` : 'No hay estudiantes registrados'}</p>
               </div>
             ) : (
@@ -201,20 +200,20 @@ export function EstudiantesPage() {
                 </thead>
                 <tbody>
                   {paginatedEstudiantes.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors align-middle">
-                      <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
+                    <tr key={row.id} className="border-b border-slate-100 dark:border-white/10 hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors align-middle">
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900 dark:text-white">
                         {row.nombre}
                       </td>
-                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500">
+                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500 dark:text-slate-400">
                         {row.tipoIdentificacion || 'CC'}
                       </td>
-                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500">
+                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500 dark:text-slate-400">
                         {row.identificacion}
                       </td>
-                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500">
+                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500 dark:text-slate-400">
                         {row.email || '-'}
                       </td>
-                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500">
+                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500 dark:text-slate-400">
                         {row.contacto || '-'}
                       </td>
                       <td className="px-2 py-3">
@@ -222,7 +221,7 @@ export function EstudiantesPage() {
                           <button
                             type="button"
                             onClick={() => { setEditingEstudiante(row); setModalOpen(true); }}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200/80 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-slate-300"
                             aria-label={`Editar ${row.nombre}`}
                             title="Editar"
                           >
@@ -233,7 +232,7 @@ export function EstudiantesPage() {
                           <button
                             type="button"
                             onClick={() => handleDelete(row)}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a16074]/10 text-[#a16074] border border-[#a16074]/30 transition-colors hover:bg-[#a16074]/20 focus:outline-none focus:ring-2 focus:ring-[#a16074]/40"
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a16074]/10 dark:bg-[#a16074]/20 text-[#a16074] dark:text-[#cf8fa2] border border-[#a16074]/30 dark:border-[#a16074]/50 transition-colors hover:bg-[#a16074]/20 dark:hover:bg-[#a16074]/30 focus:outline-none focus:ring-2 focus:ring-[#a16074]/40"
                             aria-label={`Eliminar ${row.nombre}`}
                             title="Eliminar"
                           >
@@ -292,8 +291,8 @@ export function EstudiantesPage() {
         titleClassName="text-lg font-semibold text-white"
         closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-gray-600">
-          ¿Eliminar a <span className="font-semibold text-gray-900">{deletingEstudiante?.nombre}</span>? Esta acción no se puede deshacer.
+        <p className="text-gray-600 dark:text-slate-400">
+          ¿Eliminar a <span className="font-semibold text-gray-900 dark:text-white">{deletingEstudiante?.nombre}</span>? Esta acción no se puede deshacer.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="ghost" onClick={() => setDeletingEstudiante(null)}>Cancelar</Button>

@@ -132,7 +132,7 @@ export function FichaCard({
           onClick?.();
         }
       }}
-      className="group relative flex flex-col justify-between rounded-2xl bg-white/95 p-4 sm:p-4.5 shadow-xs hover:shadow-md hover:-translate-y-0.5 border border-slate-200/70 hover:border-slate-300 transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-navy-900/30"
+      className="group relative flex flex-col justify-between rounded-2xl bg-white/95 dark:bg-slate-900/95 p-4 sm:p-4.5 shadow-xs hover:shadow-md hover:-translate-y-0.5 border border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25 transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-navy-900/30"
     >
       <div>
         {/* Top bar: Indicator + Nombre de la ficha + Código + Quick actions */}
@@ -148,10 +148,10 @@ export function FichaCard({
               }`}
               aria-hidden="true"
             />
-            <h3 className="text-base font-bold text-slate-900 group-hover:text-navy-900 transition-colors truncate leading-snug">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-navy-900 transition-colors truncate leading-snug">
               {ficha.nombre}
             </h3>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
+            <span className="shrink-0 rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
               {ficha.codigo}
             </span>
           </div>
@@ -164,7 +164,7 @@ export function FichaCard({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 dark:hover:bg-white/10 dark:hover:text-slate-100"
                 aria-label={`Editar ficha ${ficha.nombre}`}
                 title="Editar ficha"
               >
@@ -192,7 +192,7 @@ export function FichaCard({
         {(isArchived || isFinalizada) && (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {isArchived && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">
                 Archivada
               </span>
             )}
@@ -205,35 +205,35 @@ export function FichaCard({
         )}
 
         {/* Metadata grid in compact mosaic items: Horario, N° estudiantes, Trimestre, Clases restantes */}
-        <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-600">
+        <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-1.5 min-w-0" title={horarioResumen(ficha, formato)}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
               <ClockIcon />
             </span>
             <span className="truncate font-medium">{horarioResumen(ficha, formato)}</span>
           </div>
 
           <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.numeroEstudiantes ?? 0} estudiantes`}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
               <UsersIcon />
             </span>
-            <span className="truncate font-medium text-slate-700">
+            <span className="truncate font-medium text-slate-700 dark:text-slate-200">
               {ficha.numeroEstudiantes ?? 0} estudiantes
             </span>
           </div>
 
           <div className="flex items-center gap-1.5 min-w-0" title={trimestreDe(ficha)}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
               <CalendarIcon />
             </span>
-            <span className="truncate font-medium text-slate-700">{trimestreDe(ficha)}</span>
+            <span className="truncate font-medium text-slate-700 dark:text-slate-200">{trimestreDe(ficha)}</span>
           </div>
 
           <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.clasesRestantes ?? ficha.totalClases} clases restantes`}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
               <BookOpenIcon />
             </span>
-            <span className="truncate font-medium text-slate-700">
+            <span className="truncate font-medium text-slate-700 dark:text-slate-200">
               {ficha.clasesRestantes ?? ficha.totalClases} clases rest.
             </span>
           </div>
@@ -241,8 +241,8 @@ export function FichaCard({
       </div>
 
       {/* Footer bar with actions */}
-      <div className="mt-4 pt-3 border-t border-slate-100/90 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
+      <div className="mt-4 pt-3 border-t border-slate-100/90 dark:border-white/10 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
           Ver detalles →
         </span>
 
@@ -273,7 +273,7 @@ export function FichaCard({
             <button
               type="button"
               onClick={onArchive}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
               aria-label={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
               title={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
             >

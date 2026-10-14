@@ -4,7 +4,9 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useNotificaciones } from '@/features/notificaciones/hooks/useNotificaciones';
 import type { Notificacion, NotificacionTipo } from '@/features/notificaciones/types';
 import { classNames } from '@/shared/utils/helpers';
+import { useModoOscuro } from '@/shared/hooks/useModoOscuro';
 import logoNavbarLight from '@/assets/logo_noteplus_navbar_light.png';
+import logoNavbarOscuro from '@/assets/logo_noteplus_navbar.png';
 
 const NAV_LINKS: { to: string; label: string; end?: boolean }[] = [
   { to: '/fichas', label: 'Inicio', end: true },
@@ -58,6 +60,7 @@ export function Navbar() {
   const [archivadas, setArchivadas] = useState<string[]>(leerArchivadas);
   const [panelAbierto, setPanelAbierto] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const { oscuro, alternar } = useModoOscuro();
 
   const archivar = (id: string) => {
     setArchivadas((prev) => {
@@ -105,27 +108,45 @@ export function Navbar() {
   }, [panelAbierto]);
 
   return (
-    <header className="sticky top-0 z-40 bg-navy-950 shadow-lg shadow-navy-950/40">
+    <header className="sticky top-0 z-40 bg-navy-950 shadow-lg shadow-navy-950/40 dark:bg-[#8a8fa8] dark:shadow-black/30">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:px-6 md:h-16 md:flex-nowrap md:gap-x-5 md:py-0 lg:px-8">
         <NavLink to="/fichas" className="order-1 shrink-0" aria-label="NotePlus, ir al inicio">
           <img
-            src={logoNavbarLight}
+            src={oscuro ? logoNavbarOscuro : logoNavbarLight}
             alt="NotePlus"
-            width={1373}
-            height={237}
+            width={oscuro ? 2082 : 1373}
+            height={oscuro ? 437 : 237}
             className="h-7 w-auto transition-transform duration-200 hover:scale-105 md:h-9"
-            style={{ filter: LOGO_GLOW }}
+            style={oscuro ? undefined : { filter: LOGO_GLOW }}
           />
         </NavLink>
 
         <div className="order-2 ml-auto flex shrink-0 items-center gap-1 sm:gap-3 md:order-3 md:ml-0">
+          <button
+            type="button"
+            onClick={alternar}
+            aria-pressed={oscuro}
+            aria-label={oscuro ? 'Desactivar modo oscuro' : 'Activar modo oscuro'}
+            title={oscuro ? 'Desactivar modo oscuro' : 'Activar modo oscuro'}
+            className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 dark:text-navy-950 dark:hover:bg-navy-950/10 dark:hover:text-navy-950 dark:focus:ring-navy-950/30"
+          >
+            {oscuro ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0012 21.75a9.753 9.753 0 009.752-6.748z" />
+              </svg>
+            )}
+          </button>
           <div className="relative" ref={panelRef}>
             <button
               type="button"
               onClick={() => setPanelAbierto((v) => !v)}
               aria-expanded={panelAbierto}
               aria-label={`Notificaciones${user ? ` de ${user.nombre}` : ''}${notificaciones.length > 0 ? `, ${notificaciones.length} sin leer` : ''}`}
-              className="relative rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="relative rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white dark:text-navy-950 dark:hover:bg-navy-950/10 dark:hover:text-navy-950"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path
@@ -136,18 +157,18 @@ export function Navbar() {
                 />
               </svg>
               {notificaciones.length > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-navy-950" aria-hidden="true">
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-navy-950 dark:ring-[#8a8fa8]" aria-hidden="true">
                   {notificaciones.length > 9 ? '9+' : notificaciones.length}
                 </span>
               )}
             </button>
 
             {panelAbierto && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl sm:w-96">
-                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                  <p className="text-sm font-bold text-gray-900">Notificaciones</p>
+              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl sm:w-96 dark:border-white/10 dark:bg-slate-900">
+                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-white/10">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Notificaciones</p>
                   {notificaciones.length > 0 && (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-gray-700">
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-gray-700 dark:bg-white/10 dark:text-slate-300">
                       {notificaciones.length}
                     </span>
                   )}
@@ -155,19 +176,19 @@ export function Navbar() {
                 <div className="max-h-96 overflow-y-auto">
                   {notificaciones.length === 0 ? (
                     <div className="px-4 py-8 text-center">
-                      <p className="text-sm text-gray-500">Sin notificaciones por ahora</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400">Sin notificaciones por ahora</p>
                       {archivadas.length > 0 && (
                         <button
                           type="button"
                           onClick={restaurar}
-                          className="mt-2 text-sm font-medium text-blue-600 hover:underline"
+                          className="mt-2 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >
                           Mostrar archivadas ({archivadas.length})
                         </button>
                       )}
                     </div>
                   ) : (
-                    <ul className="divide-y divide-gray-100">
+                    <ul className="divide-y divide-gray-100 dark:divide-white/10">
                       {notificaciones.map((n) => {
                         const icon = TIPO_ICON[n.tipo];
                         return (
@@ -175,7 +196,7 @@ export function Navbar() {
                             <Link
                               to={n.link}
                               onClick={() => setPanelAbierto(false)}
-                              className="flex items-start gap-3 px-4 py-3 pr-10 transition-colors hover:bg-gray-50"
+                              className="flex items-start gap-3 px-4 py-3 pr-10 transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
                             >
                               <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white ${icon.bg}`} aria-hidden="true">
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -183,14 +204,14 @@ export function Navbar() {
                                 </svg>
                               </span>
                               <span className="min-w-0">
-                                <span className="block text-sm font-semibold text-gray-900">{n.titulo}</span>
-                                <span className="mt-0.5 block text-sm text-gray-600">{n.mensaje}</span>
+                                <span className="block text-sm font-semibold text-gray-900 dark:text-white">{n.titulo}</span>
+                                <span className="mt-0.5 block text-sm text-gray-600 dark:text-slate-400">{n.mensaje}</span>
                               </span>
                             </Link>
                             <button
                               type="button"
                               onClick={() => archivar(n.id)}
-                              className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                              className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300 dark:focus:ring-slate-500"
                               aria-label={`Descartar notificación: ${n.titulo}`}
                               title="Descartar notificación"
                             >
@@ -208,13 +229,13 @@ export function Navbar() {
             )}
           </div>
 
-          <span className="mx-1 h-6 w-px bg-white/20" aria-hidden="true" />
+          <span className="mx-1 h-6 w-px bg-white/20 dark:bg-navy-950/25" aria-hidden="true" />
 
           <button
             type="button"
             onClick={() => logout()}
             disabled={isLogoutPending}
-            className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-[#a16074] transition-colors hover:bg-white/10 hover:text-[#b87489] focus:outline-none focus:ring-2 focus:ring-[#a16074]/40 disabled:opacity-50"
+            className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-[#a16074] transition-colors hover:bg-white/10 hover:text-[#b87489] focus:outline-none focus:ring-2 focus:ring-[#a16074]/40 disabled:opacity-50 dark:text-navy-950 dark:hover:bg-navy-950/10 dark:focus:ring-navy-950/30"
           >
             Cerrar sesión
           </button>
@@ -233,8 +254,8 @@ export function Navbar() {
                 classNames(
                   'shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    ? 'bg-white/15 text-white dark:bg-navy-950/15 dark:text-navy-950'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-navy-950/70 dark:hover:bg-navy-950/10 dark:hover:text-navy-950'
                 )
               }
             >

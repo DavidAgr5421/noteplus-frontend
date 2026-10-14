@@ -51,7 +51,7 @@ export function ActividadTree({ actividades, onAdd, onEdit, onDelete, disabled, 
           {hasChildren && (
             <button
               onClick={() => toggleExpand(actividad.id)}
-              className="p-1 text-gray-500 hover:text-gray-700"
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               {isExpanded ? (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,7 +67,7 @@ export function ActividadTree({ actividades, onAdd, onEdit, onDelete, disabled, 
           {!hasChildren && <div className="w-5" />}
           <div className="flex-1 flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{actividad.nombre}</span>
-            <span className="text-sm text-gray-500 whitespace-nowrap">
+            <span className="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">
               {actividad.porcentaje.toFixed(1)}%
             </span>
             {hasChildren && (
@@ -91,7 +91,7 @@ export function ActividadTree({ actividades, onAdd, onEdit, onDelete, disabled, 
           </div>
         </div>
         {hasChildren && isExpanded && (
-          <div className="border-l-2 border-gray-200 ml-6 mt-1">
+          <div className="border-l-2 border-gray-200 dark:border-white/10 ml-6 mt-1">
             {children.map(child => renderActividad(child, level + 1))}
           </div>
         )}
@@ -103,7 +103,7 @@ export function ActividadTree({ actividades, onAdd, onEdit, onDelete, disabled, 
     <div className="space-y-2">
       {rootActividades.map(actividad => renderActividad(actividad))}
       {!readonly && !disabled && rootActividades.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 dark:text-slate-400">
           <p>No hay actividades. Agrega la primera actividad principal.</p>
         </div>
       )}
@@ -178,7 +178,7 @@ export function ActividadForm({ initialData, onSubmit, onClose, isLoading, submi
         {...register('fechaLimite')}
       />
       <div>
-        <label htmlFor="porcentaje" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="porcentaje" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
           Porcentaje
         </label>
         <div className="flex items-center gap-3">
@@ -202,13 +202,13 @@ export function ActividadForm({ initialData, onSubmit, onClose, isLoading, submi
               value={porcentajeInput ?? porcentaje.toFixed(1)}
               onChange={(e) => handlePorcentajeInputChange(e.target.value)}
               onBlur={() => setPorcentajeInput(null)}
-              className="w-20 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm text-right tabular-nums shadow-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600"
+              className="w-20 rounded-full border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-3 py-1 text-sm text-right tabular-nums shadow-sm focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 dark:text-slate-100"
             />
-            <span className="text-sm font-medium text-gray-500">%</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-slate-400">%</span>
           </div>
         </div>
         {errors.porcentaje && (
-          <p className="mt-1 text-sm text-red-600" role="alert">{errors.porcentaje.message}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-rose-400" role="alert">{errors.porcentaje.message}</p>
         )}
       </div>
       <div className="mt-6 flex justify-end gap-3">
@@ -230,11 +230,9 @@ interface NotasTableProps {
   data: FichaNotas;
   finalizada: boolean;
   onNotaChange: (actividadId: string, estudianteId: string, nota: number) => void;
-  onSave: () => void;
-  loading?: boolean;
 }
 
-export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: NotasTableProps) {
+export function NotasTable({ data, finalizada, onNotaChange }: NotasTableProps) {
   // Grupos de columnas: cada actividad padre agrupa sus subactividades (hojas);
   // las actividades principales sin hijos van como columna simple.
   const groups = useMemo(() => {
@@ -275,15 +273,12 @@ export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: 
       ...prev,
       [estudianteId]: { ...(prev[estudianteId] ?? {}), [actividadId]: raw },
     }));
-    const v = parseFloat(raw.replace(',', '.'));
-    if (raw.trim() !== '' && !Number.isNaN(v)) {
+    // Vacío se informa como 0 para que al borrar se guarde 0 (el campo sigue mostrando vacío).
+    const norm = raw.trim() === '' ? '0' : raw;
+    const v = parseFloat(norm.replace(',', '.'));
+    if (!Number.isNaN(v)) {
       onNotaChange(actividadId, estudianteId, v);
     }
-  };
-
-  const handleSave = () => {
-    setDrafts({});
-    onSave();
   };
 
   // Notas en vivo: mezcla valores guardados + borradores válidos y recalcula
@@ -296,8 +291,9 @@ export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: 
       const studentDrafts = drafts[row.estudianteId];
       if (studentDrafts) {
         Object.entries(studentDrafts).forEach(([actId, raw]) => {
-          const v = parseFloat(raw.replace(',', '.'));
-          if (raw.trim() !== '' && !Number.isNaN(v)) merged[actId] = v;
+          const norm = raw.trim() === '' ? '0' : raw;
+          const v = parseFloat(norm.replace(',', '.'));
+          if (!Number.isNaN(v)) merged[actId] = v;
         });
       }
       const r = calculateLiveGrades(nodes, merged, data.notaMinimaAprobacion);
@@ -337,19 +333,19 @@ export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: 
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-white/10">
             {data.estudiantes.length === 0 ? (
               <tr>
-                <td colSpan={totalCols} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={totalCols} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                   No hay estudiantes en esta ficha
                 </td>
               </tr>
             ) : (
               data.estudiantes.map(row => (
-                <tr key={row.estudianteId} className="hover:bg-gray-50">
+                <tr key={row.estudianteId} className="hover:bg-gray-50 dark:hover:bg-white/5">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{row.estudianteNombre}</p>
-                    <p className="text-sm text-gray-500">{row.estudianteIdentificacion}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{row.estudianteNombre}</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">{row.estudianteIdentificacion}</p>
                   </td>
                   {leafColumns.map(act => (
                     <td key={act.id} className="px-4 py-3">
@@ -360,16 +356,16 @@ export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: 
                         step="0.1"
                         value={getDraft(row.estudianteId, act.id) ?? row.actividades[act.id] ?? ''}
                         onChange={(e) => handleInputChange(act.id, row.estudianteId, e.target.value)}
-                        disabled={finalizada || loading}
-                        className="w-24"
+                        disabled={finalizada}
+                        className="nota-input w-24"
                       />
                     </td>
                   ))}
                   <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{liveByStudent[row.estudianteId].notaAcumulada.toFixed(1)}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{liveByStudent[row.estudianteId].notaAcumulada.toFixed(1)}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-bold text-lg text-gray-900">{liveByStudent[row.estudianteId].notaFinal.toFixed(1)}</span>
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">{liveByStudent[row.estudianteId].notaFinal.toFixed(1)}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -384,11 +380,6 @@ export function NotasTable({ data, finalizada, onNotaChange, onSave, loading }: 
           </tbody>
         </table>
       </div>
-      {!finalizada && (
-        <div className="mt-4 flex justify-end">
-          <Button variant="navyGreen" onClick={handleSave} loading={loading}>Guardar notas</Button>
-        </div>
-      )}
     </div>
   );
 }

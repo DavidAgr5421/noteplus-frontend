@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, CardContent } from '@/shared/ui';
+import { Button, Card, CardContent, Input, Modal } from '@/shared/ui';
 import { formatDate, claseHorarioLabel } from '@/shared/utils/helpers';
-import { useCalendar } from '../hooks/useAsistencias';
+import { useCalendar, useUpdateClase } from '../hooks/useAsistencias';
 import { useFicha } from '@/features/fichas/hooks/useFichas';
+import { FichaHeaderCard } from '@/features/fichas/components/FichaHeaderCard';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
 import { ImportHint } from '@/features/importacion';
 
@@ -17,18 +18,6 @@ function todayStr(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function todayLocal(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-/** Una clase solo cuenta como realizada si el flag está activo Y su día ya pasó (o es hoy). */
-function esRealizada(fecha: string, realizada: boolean): boolean {
-  return realizada && fecha <= todayLocal();
-}
-
 /** Vista de asistencias de una ficha: lista de sus clases con acceso directo a marcar. */
 export function AsistenciasPage() {
   const { fichaId } = useParams<{ fichaId: string }>();
@@ -40,6 +29,7 @@ export function AsistenciasPage() {
   const from = ficha?.fechaInicio ? ficha.fechaInicio.slice(0, 10) : addMonths(todayStr(), -3);
   const to = addMonths(from, 6);
   const { data: clases, isLoading, error } = useCalendar(from, to);
+  const updateClase = useUpdateClase();
 
   const clasesFicha = useMemo(
     () =>
@@ -48,6 +38,39 @@ export function AsistenciasPage() {
         .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora)),
     [clases, fichaId],
   );
+
+  const [busqueda, setBusqueda] = useState('');
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [filtroModalidad, setFiltroModalidad] = useState<'todas' | 'PRESENCIAL' | 'VIRTUAL'>('todas');
+  const [filtroEstado, setFiltroEstado] = useState<'todas' | 'realizada' | 'pendiente'>('todas');
+
+  const hayFiltros = busqueda.trim() !== '' || filtroModalidad !== 'todas' || filtroEstado !== 'todas';
+
+  const clasesVisibles = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return clasesFicha.filter(c => {
+      if (filtroModalidad !== 'todas' && c.modalidad !== filtroModalidad) return false;
+      if (filtroEstado === 'realizada' && !c.realizada) return false;
+      if (filtroEstado === 'pendiente' && c.realizada) return false;
+      if (q) {
+        const texto = [
+          formatDate(c.fecha, 'long'),
+          formatDate(c.fecha),
+          claseHorarioLabel(c, formato),
+          c.modalidad === 'PRESENCIAL' ? 'presencial' : 'virtual',
+          c.realizada ? 'realizada' : 'pendiente',
+        ].join(' ').toLowerCase();
+        if (!texto.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [clasesFicha, busqueda, filtroModalidad, filtroEstado, formato]);
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroModalidad('todas');
+    setFiltroEstado('todas');
+  };
 
   if (isLoading) {
     return (
@@ -68,57 +91,70 @@ export function AsistenciasPage() {
   return (
     <div className="space-y-6">
       <ImportHint ctaLabel="Ir a estudiantes" onCta={() => navigate(`/fichas/${fichaId}/estudiantes`)} />
-      <div
-        className="rounded-3xl px-5 py-4"
-        style={{ background: 'linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0))' }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
-              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900">{ficha?.nombre || 'Ficha'}</p>
-              <span className="text-[1.8rem] font-bold leading-tight text-gray-400" aria-hidden="true">-</span>
-              {ficha?.codigo && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-lg font-medium text-gray-700">
-                  {ficha.codigo}
-                </span>
-              )}
-            </div>
-            {ficha?.trimestre && (
-              <p className="mt-1 text-sm text-gray-500">{ficha.trimestre}</p>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5 pr-1">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900 text-green-400">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Clases</span>
-              <span className="text-sm font-semibold tabular-nums text-gray-800">
-                {clasesFicha.length}
-              </span>
-            </span>
-          </div>
+
+      <div className="px-4">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Asistencias</h3>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
+            {hayFiltros
+              ? `${clasesVisibles.length} de ${clasesFicha.length} clases en el período`
+              : `${clasesFicha.length} ${clasesFicha.length === 1 ? 'clase' : 'clases'} en el período`}
+          </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h3 className="text-xl font-bold text-gray-900">Clases</h3>
-          <p className="text-sm text-gray-500">
-            {`${clasesFicha.length} ${clasesFicha.length === 1 ? 'clase' : 'clases'} en el período`}
-          </p>
+      <div className="grid items-center gap-4 px-4 lg:grid-cols-[30%_40%] lg:justify-between [&>*]:min-w-0">
+        {ficha && (
+          <FichaHeaderCard ficha={ficha} onOpenDetalle={() => navigate(`/fichas/${fichaId}`)} />
+        )}
+        <div className="flex items-center gap-2 justify-start lg:justify-end">
+          <div className="relative">
+            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+            </svg>
+            <Input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar..."
+              aria-label="Buscar clase por fecha, horario o estado"
+              className="py-1.5 pl-10 text-sm sm:w-56"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltrosAbiertos(true)}
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-900"
+            aria-label="Filtros"
+            title="Filtros"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            {(filtroModalidad !== 'todas' || filtroEstado !== 'todas') && (
+              <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white" aria-hidden="true" />
+            )}
+          </button>
         </div>
       </div>
 
       <Card variant="default" padding="none">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 overflow-x-auto p-4">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4">
             {clasesFicha.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-gray-500 dark:text-slate-400">
                 <p>No hay clases registradas para esta ficha en el período</p>
+              </div>
+            ) : clasesVisibles.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-gray-500 dark:text-slate-400">Sin resultados para la búsqueda o filtros aplicados</p>
+                <button
+                  type="button"
+                  onClick={limpiarFiltros}
+                  className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Limpiar búsqueda y filtros
+                </button>
               </div>
             ) : (
               <table className="w-full table-fixed border-collapse text-sm">
@@ -141,15 +177,15 @@ export function AsistenciasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {clasesFicha.map(clase => (
-                    <tr key={clase.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors align-middle">
-                      <td className="px-4 py-3 font-medium text-gray-900">
+                  {clasesVisibles.map(clase => (
+                    <tr key={clase.id} className="border-b border-slate-100 dark:border-white/10 hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors align-middle">
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                         {formatDate(clase.fecha, 'long')}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900 dark:text-white">
                         {formatDate(clase.fecha)}
                       </td>
-                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-gray-500 dark:text-slate-400">
                         {claseHorarioLabel(clase, formato)}
                       </td>
                       <td className="px-2 py-3 text-center">
@@ -160,10 +196,27 @@ export function AsistenciasPage() {
                         </span>
                       </td>
                       <td className="px-2 py-3 text-center">
-                        <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          esRealizada(clase.fecha, clase.realizada) ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {esRealizada(clase.fecha, clase.realizada) ? 'Realizada' : 'Pendiente'}
+                        <span className="inline-flex items-center justify-center gap-2">
+                          <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            clase.realizada ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {clase.realizada ? 'Realizada' : 'Pendiente'}
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={clase.realizada}
+                            aria-label={clase.realizada ? `Marcar clase del ${formatDate(clase.fecha)} como no realizada` : `Marcar clase del ${formatDate(clase.fecha)} como realizada`}
+                            title={clase.realizada ? 'Marcar como no realizada' : 'Marcar como realizada'}
+                            disabled={updateClase.isPending}
+                            onClick={() => updateClase.mutate({ claseId: clase.id, data: { modalidad: clase.modalidad, realizada: !clase.realizada } })}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:opacity-50 ${clase.realizada ? 'bg-green-600' : 'bg-slate-300 hover:bg-slate-400'}`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${clase.realizada ? 'translate-x-4' : 'translate-x-0.5'}`}
+                            />
+                          </button>
                         </span>
                       </td>
                       <td className="px-2 py-3">
@@ -188,6 +241,65 @@ export function AsistenciasPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Modal
+        isOpen={filtrosAbiertos}
+        onClose={() => setFiltrosAbiertos(false)}
+        title="Filtros"
+        size="sm"
+        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
+        titleClassName="text-lg font-semibold text-white"
+        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+      >
+        <div>
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-200">Modalidad</p>
+          <div className="inline-flex rounded-full bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Filtrar por modalidad">
+            {([
+              { valor: 'todas', etiqueta: 'Todas' },
+              { valor: 'PRESENCIAL', etiqueta: 'Presencial' },
+              { valor: 'VIRTUAL', etiqueta: 'Virtual' },
+            ] as const).map((op) => (
+              <button
+                key={op.valor}
+                type="button"
+                onClick={() => setFiltroModalidad(op.valor)}
+                aria-pressed={filtroModalidad === op.valor}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  filtroModalidad === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                {op.etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-200">Estado</p>
+          <div className="inline-flex rounded-full bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Filtrar por estado">
+            {([
+              { valor: 'todas', etiqueta: 'Todas' },
+              { valor: 'realizada', etiqueta: 'Realizadas' },
+              { valor: 'pendiente', etiqueta: 'Pendientes' },
+            ] as const).map((op) => (
+              <button
+                key={op.valor}
+                type="button"
+                onClick={() => setFiltroEstado(op.valor)}
+                aria-pressed={filtroEstado === op.valor}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  filtroEstado === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                {op.etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={limpiarFiltros}>Limpiar</Button>
+          <Button variant="danger" onClick={() => setFiltrosAbiertos(false)}>Cerrar</Button>
+        </div>
+      </Modal>
     </div>
   );
 }

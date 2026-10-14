@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button, Input, Modal } from '@/shared/ui';
-import { useClase, useAsistencias, useSaveAsistencias } from '../hooks/useAsistencias';
+import { useClase, useAsistencias, useSaveAsistencias, useUpdateClase } from '../hooks/useAsistencias';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
 import { useEstudiantes } from '../../estudiantes/hooks/useEstudiantes';
 import { JustificacionModal } from '../components/AsistenciaComponents';
@@ -49,6 +49,15 @@ export function MarcarAsistenciasPage() {
   const { data: estudiantes, isLoading: loadingEstudiantes } = useEstudiantes(clase?.fichaId || '');
   const { data: asistenciasPrevias } = useAsistencias(claseId || '');
   const saveAsistencias = useSaveAsistencias();
+  const updateClase = useUpdateClase();
+  const [preguntarRealizada, setPreguntarRealizada] = useState(false);
+
+  function hoyLocal(): string {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
 
   const [marcas, setMarcas] = useState<Record<string, AsistenciaFormData>>({});
   const [justificando, setJustificando] = useState<{ id: string; nombre: string } | null>(null);
@@ -158,7 +167,24 @@ export function MarcarAsistenciasPage() {
     if (!claseId) return;
     saveAsistencias.mutate(
       { claseId, asistencias: Object.values(marcas) },
-      { onSuccess: () => setSaved(true) }
+      {
+        onSuccess: () => {
+          setSaved(true);
+          // Si se modificó antes de realizarse (clase futura sin marcar),
+          // se pregunta si cambiar el estado a realizada.
+          if (clase && !clase.realizada && clase.fecha > hoyLocal()) {
+            setPreguntarRealizada(true);
+          }
+        },
+      }
+    );
+  };
+
+  const handleMarcarRealizada = () => {
+    if (!claseId || !clase) return;
+    updateClase.mutate(
+      { claseId, data: { modalidad: clase.modalidad, realizada: true } },
+      { onSuccess: () => setPreguntarRealizada(false) },
     );
   };
 
@@ -192,7 +218,7 @@ export function MarcarAsistenciasPage() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">No se pudo cargar la clase</p>
-        <Link to="/calendario" className="text-blue-600 hover:underline text-sm">Volver al calendario</Link>
+        <Link to="/calendario" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">Volver al calendario</Link>
       </div>
     );
   }
@@ -217,7 +243,7 @@ export function MarcarAsistenciasPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7 7-7M3 12h18" />
                 </svg>
               </button>
-              <h1 className="text-2xl font-bold capitalize leading-tight text-gray-900">{formatDate(clase.fecha, 'long')}</h1>
+              <h1 className="text-2xl font-bold capitalize leading-tight text-gray-900 dark:text-white">{formatDate(clase.fecha, 'long')}</h1>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3 pr-1">
@@ -227,8 +253,8 @@ export function MarcarAsistenciasPage() {
               </svg>
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Horario</span>
-              <span className="text-2xl font-bold tabular-nums leading-tight text-gray-900">{claseHorarioLabel(clase, formato)}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Horario</span>
+              <span className="text-2xl font-bold tabular-nums leading-tight text-gray-900 dark:text-white">{claseHorarioLabel(clase, formato)}</span>
             </span>
           </div>
         </div>
@@ -236,14 +262,14 @@ export function MarcarAsistenciasPage() {
         <div className="card-fade mt-4 flex flex-col gap-3 rounded-3xl px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <div className="leading-none">
-              <p className="text-[1.5rem] font-bold leading-tight text-gray-900">{fichaNombre}</p>
+              <p className="text-[1.5rem] font-bold leading-tight text-gray-900 dark:text-white">{fichaNombre}</p>
               {fichaCodigo && (
-                <span className="mt-0.5 inline-flex items-center rounded-full bg-gray-100 px-3 py-0.5 text-[1rem] font-medium leading-tight text-gray-700">
+                <span className="mt-0.5 inline-flex items-center rounded-full bg-gray-100 dark:bg-white/10 px-3 py-0.5 text-[1rem] font-medium leading-tight text-gray-700 dark:text-slate-300">
                   {fichaCodigo}
                 </span>
               )}
             </div>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.875rem] text-gray-600">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.875rem] text-gray-600 dark:text-slate-400">
               <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
               <span>{hayFiltros ? `Mostrando ${conteoVisible.total} de ${counts.total} estudiantes` : `${counts.total} estudiantes`}</span>
               <span className="text-gray-300" aria-hidden="true">|</span>
@@ -254,7 +280,7 @@ export function MarcarAsistenciasPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
               </svg>
               <Input
@@ -296,7 +322,7 @@ export function MarcarAsistenciasPage() {
               {zoomAbierto && (
                 <>
                   <div className="fixed inset-0 z-10 cursor-default" onClick={() => setZoomAbierto(false)} aria-hidden="true" />
-                  <div className="absolute bottom-11 right-0 z-20 flex w-60 items-center gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg">
+                  <div className="absolute bottom-11 right-0 z-20 flex w-60 items-center gap-2 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 p-3 shadow-lg">
                     <button
                       type="button"
                       onClick={() => cambiarZoom(-0.1)}
@@ -334,7 +360,7 @@ export function MarcarAsistenciasPage() {
                     <button
                       type="button"
                       onClick={() => setZoom(1)}
-                      className="shrink-0 text-xs tabular-nums text-gray-500 hover:text-gray-700"
+                      className="shrink-0 text-xs tabular-nums text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                       title="Restablecer zoom al 100 %"
                     >
                       {Math.round(zoom * 100)} %
@@ -346,12 +372,6 @@ export function MarcarAsistenciasPage() {
           </div>
         </div>
       </div>
-
-      {!clase.realizada && (
-        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-2xl text-yellow-800 text-sm">
-          Esta clase está marcada como "no realizada". Márcala como realizada para poder guardar asistencias.
-        </div>
-      )}
 
       {saved && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-2xl text-green-800 text-sm">
@@ -380,21 +400,21 @@ export function MarcarAsistenciasPage() {
               </ThAjustable>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/60">
+          <tbody className="divide-y divide-slate-200/60 dark:divide-white/10">
             {visibles.map((est, i) => {
                 const marca = marcas[est.id];
                 if (!marca) return null;
                 const asistio = marca.estado === 'ASISTIO';
                 const tieneJustificacion = !!marca.justificacion;
                 return (
-                  <tr key={est.id} className="bg-white/60 hover:bg-white transition-colors">
+                  <tr key={est.id} className="bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-colors">
                     <td className="px-2 py-3">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[0.625rem] font-bold tabular-nums text-slate-700">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-[0.625rem] font-bold tabular-nums text-slate-700 dark:text-slate-300">
                         {i + 1}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{est.nombre}</td>
-                    <td className="px-4 py-3 text-slate-500 tabular-nums">{est.identificacion}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{est.nombre}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 tabular-nums">{est.identificacion}</td>
                     <td className="px-4 py-3">
                       <div className="inline-flex w-fit rounded-full bg-slate-200/60 p-0.5 shadow-xs" role="group" aria-label={`Asistencia de ${est.nombre}`}>
                         <button
@@ -402,7 +422,7 @@ export function MarcarAsistenciasPage() {
                           onClick={() => setEstado(est.id, 'ASISTIO')}
                           aria-pressed={asistio}
                           className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
-                            asistio ? 'bg-emerald-100 text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                            asistio ? 'bg-emerald-100 text-emerald-900 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
                           }`}
                         >
                           ✓ Asistió
@@ -412,7 +432,7 @@ export function MarcarAsistenciasPage() {
                           onClick={() => setEstado(est.id, 'NO_ASISTIO')}
                           aria-pressed={!asistio}
                           className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
-                            !asistio ? 'bg-[#a16074]/15 text-[#8e5063] border border-[#a16074]/30 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                            !asistio ? 'bg-[#a16074]/15 text-[#8e5063] border border-[#a16074]/30 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
                           }`}
                         >
                           ✗ No asistió
@@ -422,7 +442,7 @@ export function MarcarAsistenciasPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                       {tieneJustificacion && (
-                        <span className="max-w-[120px] truncate text-xs text-slate-500" title={marca.justificacion}>
+                        <span className="max-w-[120px] truncate text-xs text-slate-500 dark:text-slate-400" title={marca.justificacion}>
                           {(marca.justificacion || '').slice(0, 10)}
                         </span>
                       )}
@@ -452,15 +472,15 @@ export function MarcarAsistenciasPage() {
             </tbody>
           </table>
           {(estudiantes || []).length === 0 && (
-            <p className="py-8 text-center text-gray-500">No hay estudiantes en esta ficha</p>
+            <p className="py-8 text-center text-gray-500 dark:text-slate-400">No hay estudiantes en esta ficha</p>
           )}
           {(estudiantes || []).length > 0 && visibles.length === 0 && (
             <div className="py-8 text-center">
-              <p className="text-gray-500">Sin resultados para la búsqueda o filtros aplicados</p>
+              <p className="text-gray-500 dark:text-slate-400">Sin resultados para la búsqueda o filtros aplicados</p>
               <button
                 type="button"
                 onClick={limpiarFiltros}
-                className="mt-2 text-sm font-medium text-blue-600 hover:underline"
+                className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
               >
                 Limpiar búsqueda y filtros
               </button>
@@ -474,20 +494,38 @@ export function MarcarAsistenciasPage() {
             Exportar
           </Button>
           {exportOpen && (
-            <div className="absolute bottom-12 right-0 z-10 w-44 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-              <button type="button" onClick={() => handleExport('csv')} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+            <div className="absolute bottom-12 right-0 z-10 w-44 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl">
+              <button type="button" onClick={() => handleExport('csv')} className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5">
                 Descargar CSV
               </button>
-              <button type="button" onClick={() => handleExport('xlsx')} className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
+              <button type="button" onClick={() => handleExport('xlsx')} className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-white/5">
                 Descargar Excel
               </button>
             </div>
           )}
         </div>
-        <Button variant="success" onClick={handleSave} loading={saveAsistencias.isPending} disabled={!clase.realizada}>
+        <Button variant="success" onClick={handleSave} loading={saveAsistencias.isPending}>
           Guardar asistencias
         </Button>
       </div>
+
+      <Modal
+        isOpen={preguntarRealizada}
+        onClose={() => setPreguntarRealizada(false)}
+        title="Marcar clase como realizada"
+        size="sm"
+        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
+        titleClassName="text-lg font-semibold text-white"
+        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+      >
+        <p className="text-sm text-gray-700 dark:text-slate-300">
+          Registraste asistencias en una clase que aún no está marcada como realizada. ¿Quieres cambiar su estado a <span className="font-bold text-gray-900 dark:text-white">realizada</span>?
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => setPreguntarRealizada(false)}>Ahora no</Button>
+          <Button type="button" variant="navyGreen" loading={updateClase.isPending} onClick={handleMarcarRealizada}>Sí, marcar</Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={filtrosAbiertos}
@@ -500,14 +538,14 @@ export function MarcarAsistenciasPage() {
       >
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-sm font-medium text-gray-700">Tipo de documento</p>
-            <div className="flex flex-wrap gap-1 rounded-3xl bg-gray-100 p-1" role="group" aria-label="Filtrar por tipo de documento">
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-300">Tipo de documento</p>
+            <div className="flex flex-wrap gap-1 rounded-3xl bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Filtrar por tipo de documento">
               <button
                 type="button"
                 onClick={() => setFiltroTipo('todas')}
                 aria-pressed={filtroTipo === 'todas'}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  filtroTipo === 'todas' ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700'
+                  filtroTipo === 'todas' ? 'bg-navy-900 text-green-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 Todos
@@ -520,7 +558,7 @@ export function MarcarAsistenciasPage() {
                   aria-pressed={filtroTipo === t.valor}
                   title={t.etiqueta}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    filtroTipo === t.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700'
+                    filtroTipo === t.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {t.valor}
@@ -529,8 +567,8 @@ export function MarcarAsistenciasPage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium text-gray-700">Asistencia</p>
-            <div className="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Filtrar por asistencia">
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-300">Asistencia</p>
+            <div className="inline-flex rounded-full bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Filtrar por asistencia">
               {([
                 { valor: 'todas', etiqueta: 'Todas' },
                 { valor: 'ASISTIO', etiqueta: 'Asistieron' },
@@ -542,7 +580,7 @@ export function MarcarAsistenciasPage() {
                   onClick={() => setFiltroAsistencia(op.valor)}
                   aria-pressed={filtroAsistencia === op.valor}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    filtroAsistencia === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700'
+                    filtroAsistencia === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {op.etiqueta}
@@ -551,8 +589,8 @@ export function MarcarAsistenciasPage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium text-gray-700">Justificación</p>
-            <div className="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Filtrar por justificación">
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-300">Justificación</p>
+            <div className="inline-flex rounded-full bg-gray-100 dark:bg-white/10 p-1" role="group" aria-label="Filtrar por justificación">
               {([
                 { valor: 'todas', etiqueta: 'Todas' },
                 { valor: 'con', etiqueta: 'Con justificación' },
@@ -564,7 +602,7 @@ export function MarcarAsistenciasPage() {
                   onClick={() => setFiltroJustificacion(op.valor)}
                   aria-pressed={filtroJustificacion === op.valor}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    filtroJustificacion === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700'
+                    filtroJustificacion === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {op.etiqueta}

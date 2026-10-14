@@ -49,7 +49,7 @@ export function RegisterForm() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {errorMessage && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl" role="alert">
+            <div className="p-3 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/20 rounded-2xl" role="alert">
               {errorMessage}
             </div>
           )}
@@ -91,9 +91,9 @@ export function RegisterForm() {
         </form>
       </CardContent>
       <CardFooter className="justify-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-slate-400">
           ¿Ya tienes cuenta?{' '}
-          <a href="/login" className="text-blue-600 hover:underline font-medium">
+          <a href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
             Inicia sesión
           </a>
         </p>

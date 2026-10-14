@@ -5,12 +5,12 @@ import { Button, Input, CardFooter } from '@/shared/ui';
 import { fichaSchema, type FichaFormData, type FichaHorario } from '../types';
 import { getDayName, getShortDayName } from '@/shared/utils/helpers';
 
-/** Barra de título de sección: gradiente azul oscuro → blanco de izq. a derecha. */
+/** Barra de título de sección: gradiente azul oscuro → transparente de izq. a derecha. */
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <div
       className="rounded-xl px-4 py-2.5"
-      style={{ background: 'linear-gradient(to right, #05233a 0%, #ffffff 100%)' }}
+      style={{ background: 'linear-gradient(to right, #05233a 0%, transparent 100%)' }}
     >
       <h3 className="text-sm font-semibold text-white">{children}</h3>
     </div>
@@ -94,8 +94,8 @@ function ClockFace({ time, label }: { time: string; label: string }) {
         />
         <circle cx={cx} cy={cy} r="3.5" fill="#1d4ed8" />
       </svg>
-      <span className="text-xs font-medium text-gray-600">{label}</span>
-      <span className="text-lg font-bold tabular-nums text-gray-900">{valid ? time : '--:--'}</span>
+      <span className="text-xs font-medium text-gray-600 dark:text-slate-400">{label}</span>
+      <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{valid ? time : '--:--'}</span>
     </div>
   );
 }
@@ -234,17 +234,17 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
         </div>
       </div>
 
-      <div aria-hidden="true" className="h-px bg-gray-200" />
+      <div aria-hidden="true" className="h-px bg-gray-200 dark:bg-white/10" />
 
       {/* Horario */}
       <div>
         <SectionTitle>Horario de clases</SectionTitle>
-        <p className="pt-3 text-center text-sm text-gray-500 mb-3">
+        <p className="pt-3 text-center text-sm text-gray-500 dark:text-slate-400 mb-3">
           Marca los días, elige de qué hora a qué hora es la clase y agrégalo al horario.
         </p>
 
         {/* Días estilo reloj de Android */}
-        <span className="block text-center text-sm font-medium text-gray-700 mb-2">Días de clase</span>
+        <span className="block text-center text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Días de clase</span>
         <div className="flex justify-center gap-2 mb-5" role="group" aria-label="Días de clase">
           {WEEK_DAYS.map((dia) => {
             const active = selectedDays.includes(dia);
@@ -258,7 +258,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
                 className={`h-11 w-11 rounded-full text-sm font-semibold transition-colors ${
                   active
                     ? 'bg-blue-600 text-white shadow'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-white/15'
                 }`}
               >
                 {getShortDayName(dia).charAt(0)}
@@ -268,12 +268,12 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
         </div>
 
         {/* Reloj: de qué hora a qué hora */}
-        <span className="block text-center text-sm font-medium text-gray-700 mb-2">Hora de la clase</span>
-        <div className="mx-auto flex w-fit max-w-full flex-col sm:flex-row items-center gap-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+        <span className="block text-center text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Hora de la clase</span>
+        <div className="mx-auto flex w-fit max-w-full flex-col sm:flex-row items-center gap-6 rounded-2xl border border-blue-100 dark:border-blue-400/20 bg-blue-50/50 dark:bg-blue-500/10 p-4">
           <ClockFace time={horaInicio} label="Inicio" />
           <div className="flex sm:flex-col items-center gap-2">
             <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="hora-inicio">
+              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1" htmlFor="hora-inicio">
                 De
               </label>
               <input
@@ -281,12 +281,12 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
                 type="time"
                 value={horaInicio}
                 onChange={(e) => setHoraInicio(e.target.value)}
-                className="w-full rounded-full border border-gray-300 bg-white px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-full border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none dark:text-slate-100"
               />
             </div>
-            <span className="text-gray-400 font-bold">→</span>
+            <span className="text-gray-400 dark:text-slate-500 font-bold">→</span>
             <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="hora-fin">
+              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1" htmlFor="hora-fin">
                 A
               </label>
               <input
@@ -294,14 +294,14 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
                 type="time"
                 value={horaFin}
                 onChange={(e) => setHoraFin(e.target.value)}
-                className="w-full rounded-full border border-gray-300 bg-white px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-full border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none dark:text-slate-100"
               />
             </div>
           </div>
           <ClockFace time={horaFin} label="Fin" />
           <div className="text-center sm:text-left">
-            <p className="text-sm text-gray-600">Duración por clase</p>
-            <p className="text-xl font-bold text-navy-900">
+            <p className="text-sm text-gray-600 dark:text-slate-400">Duración por clase</p>
+            <p className="text-xl font-bold text-navy-900 dark:text-emerald-300">
               {duracion > 0 ? formatDuration(duracion) : '—'}
             </p>
           </div>
@@ -312,21 +312,21 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
             + Agregar horario
           </Button>
           {scheduleError && (
-            <p className="mt-2 text-center text-xs text-rose-600 font-medium" role="alert">{scheduleError}</p>
+            <p className="mt-2 text-center text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">{scheduleError}</p>
           )}
         </div>
 
         {/* Horarios agregados */}
         {horarios.length > 0 && (
-          <ul className="mx-auto mt-4 max-w-xl divide-y divide-slate-100 rounded-2xl border border-slate-200/60 bg-white">
+          <ul className="mx-auto mt-4 max-w-xl divide-y divide-slate-100 dark:divide-white/10 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white dark:bg-slate-900">
             {horarios.map((h) => (
               <li key={`${h.diaSemana}-${h.hora}`} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-emerald-400">
                   {getShortDayName(h.diaSemana).charAt(0)}
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">{getDayName(h.diaSemana)}</p>
-                  <p className="text-xs text-slate-500 tabular-nums">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{getDayName(h.diaSemana)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                     {h.hora} – {formatDuration(h.duracionMinutos)} por clase
                   </p>
                 </div>
@@ -335,7 +335,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
                   variant="ghost"
                   size="sm"
                   onClick={() => removeHorario(h.diaSemana, h.hora)}
-                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                   aria-label={`Quitar horario del ${getDayName(h.diaSemana)}`}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -348,7 +348,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
         )}
       </div>
 
-      <div aria-hidden="true" className="h-px bg-gray-200" />
+      <div aria-hidden="true" className="h-px bg-gray-200 dark:bg-white/10" />
 
       {/* Cantidad de clases */}
       <div>
@@ -363,7 +363,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
           />
         </div>
         {estimatedWeeks > 0 && distinctDays > 0 && (
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-slate-400">
             {distinctDays} {distinctDays === 1 ? 'día' : 'días'} por semana × {totalClases} clases
             ≈ {estimatedWeeks} {estimatedWeeks === 1 ? 'semana' : 'semanas'} de clase.
           </p>

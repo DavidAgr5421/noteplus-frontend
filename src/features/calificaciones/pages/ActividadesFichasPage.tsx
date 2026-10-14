@@ -29,7 +29,7 @@ export function ActividadesFichasPage() {
   if (error) {
     return (
       <div className="py-12 text-center">
-        <p className="text-red-600">Error al cargar las fichas</p>
+              <p className="text-red-600 dark:text-rose-400">Error al cargar las fichas</p>
       </div>
     );
   }
@@ -37,18 +37,17 @@ export function ActividadesFichasPage() {
   return (
     <div className="space-y-6">
       <div
-        className="rounded-3xl px-5 py-4"
-        style={{ background: 'linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0))' }}
+        className="rounded-3xl px-5 py-4 panel-fade"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
-              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900">
-                Actividades <span className="text-gray-400">- Fichas</span>
+              <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900 dark:text-white">
+                Actividades <span className="text-gray-400 dark:text-slate-500">- Fichas</span>
               </p>
             </div>
-            <p className="mt-1 text-sm text-gray-500">Elegí una ficha para gestionar sus actividades</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Elegí una ficha para gestionar sus actividades</p>
           </div>
           <div className="flex shrink-0 items-center gap-2.5 pr-1">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900 text-green-400">
@@ -57,8 +56,8 @@ export function ActividadesFichasPage() {
               </svg>
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Fichas</span>
-              <span className="text-sm font-semibold tabular-nums text-gray-800">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Fichas</span>
+              <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-slate-100">
                 {(fichas ?? []).length}
               </span>
             </span>
@@ -68,14 +67,14 @@ export function ActividadesFichasPage() {
 
       <div className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-xl font-bold text-gray-900">Fichas</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Fichas</h3>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             {`${filtradas.length} de ${(fichas ?? []).length} fichas`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <div
-            className="flex rounded-full border border-slate-200/80 bg-white/80 p-0.5 shadow-xs"
+            className="flex rounded-full border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 p-0.5 shadow-xs"
             role="group"
             aria-label="Filtrar fichas"
           >
@@ -87,7 +86,7 @@ export function ActividadesFichasPage() {
                 'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
                 !showArchived
                   ? 'bg-navy-900 text-emerald-400 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
               )}
             >
               Activas
@@ -100,7 +99,7 @@ export function ActividadesFichasPage() {
                 'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
                 showArchived
                   ? 'bg-navy-900 text-emerald-400 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
               )}
             >
               Archivadas
@@ -127,10 +126,10 @@ export function ActividadesFichasPage() {
         {fichas?.length === 0 ? (
           <Card variant="ghost">
             <CardContent className="py-12 text-center">
-              <h3 className="mt-2 text-lg font-bold text-gray-900">
+              <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
                 {showArchived ? 'No hay fichas archivadas' : 'No tienes fichas activas'}
               </h3>
-              <p className="mt-1 text-gray-500">
+              <p className="mt-1 text-gray-500 dark:text-slate-400">
                 {showArchived ? 'Las fichas que archives aparecerán aquí' : 'Comienza creando tu primera ficha'}
               </p>
               {!showArchived && (
@@ -143,7 +142,7 @@ export function ActividadesFichasPage() {
         ) : filtradas.length === 0 ? (
           <Card variant="ghost">
             <CardContent className="py-12 text-center">
-              <p className="text-gray-500">No hay fichas que coincidan con “{query}”.</p>
+              <p className="text-gray-500 dark:text-slate-400">No hay fichas que coincidan con “{query}”.</p>
             </CardContent>
           </Card>
         ) : (

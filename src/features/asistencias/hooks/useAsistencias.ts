@@ -53,6 +53,7 @@ export function useUpdateClase() {
       asistenciasApi.updateClase(claseId, data),
     onSuccess: (_, { claseId }) => {
       queryClient.invalidateQueries({ queryKey: ['asistencias', claseId] });
+      queryClient.invalidateQueries({ queryKey: ['clases', claseId] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
     },
   });

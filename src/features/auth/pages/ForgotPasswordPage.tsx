@@ -38,13 +38,13 @@ export function ForgotPasswordPage() {
         <CardDescription>Te enviaremos un enlace para restablecer tu contraseña</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-700">
+        <p className="mb-4 rounded-2xl border border-amber-200 dark:border-amber-400/20 bg-amber-50 dark:bg-amber-500/10 p-3 text-center text-xs text-amber-700 dark:text-amber-300">
           Boceto: el envío de correos aún no está conectado al backend.
         </p>
         {sent ? (
           <div
             role="status"
-            className="rounded-2xl border border-green-200 bg-green-50 p-3 text-sm text-green-700"
+            className="rounded-2xl border border-green-200 dark:border-green-400/20 bg-green-50 dark:bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-300"
           >
             Si el email existe en NotePlus, recibirás un enlace de recuperación.
           </div>
@@ -65,7 +65,7 @@ export function ForgotPasswordPage() {
         )}
       </CardContent>
       <CardFooter className="justify-center">
-        <a href="/login" className="text-sm font-medium text-blue-600 hover:underline">
+        <a href="/login" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
           Volver a iniciar sesión
         </a>
       </CardFooter>

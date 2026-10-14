@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Modo oscuro manual por clase `.dark` en <html> (lo pone useModoOscuro). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-navy-950: #041a2c;
   --color-navy-900: #05233a;
@@ -27,6 +30,10 @@
     /* Cantarell es una sans ancha: leve compactado global para que no se vea "extendido" */
     letter-spacing: -0.011em;
     text-wrap: pretty;
+  }
+  .dark body {
+    background-color: #020617;
+    color: #e2e8f0;
   }
   h1,
   h2,
@@ -107,6 +114,33 @@
 @layer utilities {
   .card-fade {
     background-image: radial-gradient(circle at center, rgb(255 255 255 / 0) 0%, #ffffff 75%);
+  }
+  .dark .card-fade {
+    background-image: radial-gradient(circle at center, rgb(2 6 23 / 0) 0%, #020617 75%);
+  }
+  /* Inputs de notas: sin flechas de spinner nativas. */
+  .nota-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .nota-input::-webkit-outer-spin-button,
+  .nota-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  /* Degradado de encabezados (reemplaza los inline blancos para que responda a dark). */
+  .panel-fade {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  }
+  .dark .panel-fade {
+    background: linear-gradient(to right, rgba(2, 6, 23, 0.92), rgba(2, 6, 23, 0));
+  }
+  /* Fondo de página con leve degradado en ambos modos. */
+  .page-bg {
+    background-image: linear-gradient(160deg, #e4e8ee 0%, #ebedf2 45%, #f4f6f9 100%);
+  }
+  .dark .page-bg {
+    background-image: linear-gradient(160deg, #020617 0%, #0a1628 60%, #0d1b30 100%);
   }
   .scrollbar-thin {
     scrollbar-width: thin;

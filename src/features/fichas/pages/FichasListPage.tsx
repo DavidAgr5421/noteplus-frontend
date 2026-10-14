@@ -52,7 +52,7 @@ export function FichasListPage() {
   if (error) {
     return (
       <div className="py-12 text-center">
-        <p className="text-rose-600 font-medium">Error al cargar las fichas</p>
+        <p className="text-rose-600 dark:text-rose-400 font-medium">Error al cargar las fichas</p>
       </div>
     );
   }
@@ -65,8 +65,8 @@ export function FichasListPage() {
         <section className="lg:col-span-7 xl:col-span-8 min-w-0 space-y-4" aria-label="Lista de fichas">
           {/* Header Mis Fichas */}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Mis fichas</h1>
-            <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">Mis fichas</h1>
+            <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {showArchived ? 'Fichas de trimestres archivados' : 'Gestiona y consulta tus fichas actuales'}
             </p>
           </div>
@@ -75,7 +75,7 @@ export function FichasListPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Left half: Filter pills */}
             <div
-              className="flex rounded-full border border-slate-200/80 bg-white/80 p-0.5 shadow-xs w-fit"
+              className="flex rounded-full border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 p-0.5 shadow-xs w-fit"
               role="group"
               aria-label="Filtrar fichas"
             >
@@ -87,7 +87,7 @@ export function FichasListPage() {
                   'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
                   !showArchived
                     ? 'bg-navy-900 text-emerald-400 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                 )}
               >
                 Activas
@@ -100,7 +100,7 @@ export function FichasListPage() {
                   'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
                   showArchived
                     ? 'bg-navy-900 text-emerald-400 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
                 )}
               >
                 Archivadas
@@ -155,10 +155,10 @@ export function FichasListPage() {
                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                   />
                 </svg>
-                <h3 className="mt-3 text-base font-bold text-slate-900">
+                <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-white">
                   {showArchived ? 'No hay fichas archivadas' : 'No tienes fichas activas'}
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {showArchived ? 'Las fichas que archives aparecerán aquí' : 'Comienza creando tu primera ficha formativa'}
                 </p>
                 {!showArchived && (
@@ -171,7 +171,7 @@ export function FichasListPage() {
           ) : filtradas.length === 0 ? (
             <Card variant="outlined">
               <CardContent className="py-10 text-center">
-                <p className="text-xs text-slate-500">No hay fichas que coincidan con “{query}”.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">No hay fichas que coincidan con “{query}”.</p>
               </CardContent>
             </Card>
           ) : (

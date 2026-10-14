@@ -89,7 +89,7 @@ export function Modal({
           ref={modalRef}
           tabIndex={-1}
           className={classNames(
-            'relative w-full bg-white rounded-3xl shadow-2xl overflow-hidden text-left border border-slate-200/50 animate-modal-content',
+            'relative w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden text-left border border-slate-200/50 dark:border-white/10 animate-modal-content',
             sizeStyles[size]
           )}
           onClick={(e) => e.stopPropagation()}
@@ -156,13 +156,13 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-slate-600 mb-6 text-sm leading-relaxed">{message}</p>
+      <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed">{message}</p>
       <div className="flex justify-end gap-3">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/90 border border-slate-200/60 rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors"
+          className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/10 hover:bg-slate-200/90 dark:hover:bg-white/15 border border-slate-200/60 dark:border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors"
         >
           {cancelText}
         </button>

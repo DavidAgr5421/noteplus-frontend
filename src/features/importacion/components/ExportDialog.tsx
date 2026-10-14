@@ -99,7 +99,7 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
     >
       <div className="space-y-4">
         <div>
-          <p className="mb-2 text-sm font-medium text-gray-700">Datos</p>
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-300">Datos</p>
           <div className="space-y-1" role="radiogroup" aria-label="Conjunto de datos a exportar">
             {DATASETS.map((d) => (
               <button
@@ -109,19 +109,19 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
                 aria-checked={dataset === d.valor}
                 onClick={() => setDataset(d.valor)}
                 className={`w-full rounded-2xl border px-3 py-2 text-left transition-colors ${
-                  dataset === d.valor ? 'border-navy-900 bg-navy-900/5' : 'border-slate-200/70 hover:border-slate-300'
+                  dataset === d.valor ? 'border-navy-900 bg-navy-900/5 dark:bg-navy-900' : 'border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25'
                 }`}
               >
-                <span className="block text-sm font-semibold text-slate-900">{d.etiqueta}</span>
-                <span className="block text-xs text-slate-500">{d.descripcion}</span>
+                <span className="block text-sm font-semibold text-slate-900 dark:text-white">{d.etiqueta}</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">{d.descripcion}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">Formato</p>
-          <div className="flex gap-2 rounded-full bg-slate-100 p-1 text-sm font-medium" role="radiogroup" aria-label="Formato de descarga">
+          <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Formato</p>
+          <div className="flex gap-2 rounded-full bg-slate-100 dark:bg-white/10 p-1 text-sm font-medium" role="radiogroup" aria-label="Formato de descarga">
             {(['csv', 'xlsx'] as const).map((f) => (
               <button
                 key={f}
@@ -129,7 +129,7 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
                 role="radio"
                 aria-checked={formato === f}
                 onClick={() => setFormato(f)}
-                className={`flex-1 rounded-full px-3 py-1.5 transition-all ${formato === f ? 'bg-white shadow-xs font-semibold text-slate-900' : 'text-slate-500'}`}
+                className={`flex-1 rounded-full px-3 py-1.5 transition-all ${formato === f ? 'bg-white dark:bg-slate-800 shadow-xs font-semibold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}
               >
                 {f === 'csv' ? 'CSV' : 'Excel'}
               </button>
@@ -137,7 +137,7 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
           </div>
         </div>
 
-        {progreso && <p className="text-xs text-slate-500">{progreso}</p>}
+        {progreso && <p className="text-xs text-slate-500 dark:text-slate-400">{progreso}</p>}
         {error && <p className="text-xs text-rose-600 font-medium">{error}</p>}
 
         <div className="flex justify-end gap-3">

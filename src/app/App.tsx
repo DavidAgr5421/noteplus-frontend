@@ -92,13 +92,9 @@ function AppRoutes() {
   );
 }
 
-const PAGE_GRADIENT = {
-  backgroundImage: 'linear-gradient(160deg, #e4e8ee 0%, #ebedf2 45%, #f4f6f9 100%)',
-};
-
 function MainLayout() {
   return (
-    <div className="min-h-screen" style={PAGE_GRADIENT}>
+    <div className="min-h-screen page-bg">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Outlet />

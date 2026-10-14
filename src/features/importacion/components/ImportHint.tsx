@@ -36,7 +36,7 @@ export function ImportHint({ ctaLabel, onCta }: ImportHintProps) {
     <div
       role="note"
       aria-label="Sugerencia de importación"
-      className="fixed right-4 top-20 z-40 w-72 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-xl backdrop-blur"
+      className="fixed right-4 top-20 z-40 w-72 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-3 shadow-xl backdrop-blur"
     >
       <div className="flex items-start gap-2.5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400">
@@ -45,8 +45,8 @@ export function ImportHint({ ctaLabel, onCta }: ImportHintProps) {
           </svg>
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900">¿Ya trajiste tus estudiantes?</p>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">¿Ya trajiste tus estudiantes?</p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
             Importa desde Excel, CSV o copiando de SofiaPlus.
           </p>
           <button
@@ -62,7 +62,7 @@ export function ImportHint({ ctaLabel, onCta }: ImportHintProps) {
           onClick={dismiss}
           aria-label="No volver a mostrar"
           title="No volver a mostrar"
-          className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

@@ -58,10 +58,10 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-gray-100 dark:divide-white/10">
           {loading ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 <div className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -73,7 +73,7 @@ export function Table<T>({
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 {emptyMessage}
               </td>
             </tr>
@@ -82,8 +82,8 @@ export function Table<T>({
               <tr
                 key={keyExtractor(row)}
                 className={classNames(
-                  striped && rowIndex % 2 === 1 && 'bg-gray-50',
-                  hoverable && 'hover:bg-gray-50',
+                  striped && rowIndex % 2 === 1 && 'bg-gray-50 dark:bg-white/5',
+                  hoverable && 'hover:bg-gray-50 dark:hover:bg-white/5',
                   onRowClick && 'cursor-pointer'
                 )}
                 onClick={() => onRowClick?.(row)}
@@ -91,7 +91,7 @@ export function Table<T>({
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={classNames('px-4 py-3 text-gray-900', bordered && 'border-b border-gray-100', column.className)}
+                    className={classNames('px-4 py-3 text-gray-900 dark:text-slate-100', bordered && 'border-b border-gray-100 dark:border-white/10', column.className)}
                   >
                     {column.render ? column.render(row, rowIndex) : (row as Record<string, unknown>)[column.key] as ReactNode}
                   </td>
@@ -132,8 +132,8 @@ export function TablePagination({
   );
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-      <div className="text-sm text-gray-700">
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-white/10">
+      <div className="text-sm text-gray-700 dark:text-slate-300">
         Página {currentPage} de {totalPages}
       </div>
       <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export function TablePagination({
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="px-4 py-1 text-sm border border-slate-200/80 rounded-full focus:outline-none focus:ring-2 focus:ring-navy-900 bg-white"
+            className="px-4 py-1 text-sm border border-slate-200/80 rounded-full focus:outline-none focus:ring-2 focus:ring-navy-900 bg-white dark:bg-slate-950 dark:border-white/15 dark:text-slate-100"
             aria-label="Tamaño de página"
           >
             <option value={10}>10 por página</option>
@@ -153,7 +153,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="p-2 text-slate-500 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Primera página"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,7 +163,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 text-slate-500 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Página anterior"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,7 +179,7 @@ export function TablePagination({
                 'px-3.5 py-1 text-sm rounded-full font-medium transition-all',
                 page === currentPage
                   ? 'bg-navy-900 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100'
+                  : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10'
               )}
               aria-current={page === currentPage ? 'page' : undefined}
               aria-label={`Página ${page}`}
@@ -194,7 +194,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Página siguiente"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -204,7 +204,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Última página"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

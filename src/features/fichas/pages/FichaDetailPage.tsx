@@ -129,7 +129,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
   const showForm = adding || editIndex !== null;
 
   return (
-    <section aria-label="Horarios" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+    <section aria-label="Horarios" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
       <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
         <div className="flex items-center gap-2">
           <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -152,11 +152,11 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
 
       <div className="p-5 sm:p-6">
         {sorted.length === 0 && !showForm && (
-          <p className="text-sm text-slate-500">Aún no hay horarios definidos para esta ficha.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Aún no hay horarios definidos para esta ficha.</p>
         )}
 
         {sorted.length > 0 && (
-          <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/70 bg-white">
+          <ul className="divide-y divide-slate-100 dark:divide-white/10 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900">
             {sorted.map((h, i) => (
               <li key={`${h.diaSemana}-${h.hora}-${i}`} className="flex items-center gap-3 px-4 py-3">
                 {editIndex === i ? (
@@ -178,15 +178,15 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
                       {getShortDayName(h.diaSemana).charAt(0)}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">{getDayName(h.diaSemana)}</p>
-                      <p className="text-xs tabular-nums text-slate-500">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{getDayName(h.diaSemana)}</p>
+                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
                         {formatHora(h.hora, formato)} · {formatDuration(h.duracionMinutos)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => startEdit(i)}
-                      className={`${ICON_BTN} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300`}
+                      className={`${ICON_BTN} border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 focus:ring-slate-300`}
                       aria-label={`Editar horario del ${getDayName(h.diaSemana)}`}
                       title="Editar"
                     >
@@ -209,7 +209,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         )}
 
         {adding && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <div className="mt-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 p-4">
             <HorarioForm
               day={day} setDay={setDay}
               horaInicio={horaInicio} setHoraInicio={setHoraInicio}
@@ -223,7 +223,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
           </div>
         )}
 
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
           Inicio de la ficha: {formatDate(fechaInicio, 'long')}. Los cambios de horario aplican a futuras programaciones.
         </p>
       </div>
@@ -237,9 +237,9 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         titleClassName="text-base font-semibold text-white"
         closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           ¿Eliminar el horario del{' '}
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-slate-900 dark:text-white">
             {deleteIndex !== null
               ? `${getDayName(sorted[deleteIndex].diaSemana)} ${formatHora(sorted[deleteIndex].hora, formato)}`
               : ''}
@@ -280,7 +280,7 @@ function HorarioForm(props: {
             aria-pressed={props.day === d}
             title={getDayName(d)}
             className={`h-9 w-9 rounded-full text-xs font-bold transition-colors ${
-              props.day === d ? 'bg-navy-900 text-emerald-400' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+              props.day === d ? 'bg-navy-900 text-emerald-400' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/15 hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/10'
             }`}
           >
             {getShortDayName(d).charAt(0)}
@@ -288,22 +288,22 @@ function HorarioForm(props: {
         ))}
       </div>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-xs font-medium text-slate-600">
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
           De
           <input
             type="time"
             value={props.horaInicio}
             onChange={(e) => props.setHoraInicio(e.target.value)}
-            className="mt-1 block rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900"
+            className="mt-1 block rounded-full border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900 dark:text-slate-100"
           />
         </label>
-        <label className="block text-xs font-medium text-slate-600">
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
           A
           <input
             type="time"
             value={props.horaFin}
             onChange={(e) => props.setHoraFin(e.target.value)}
-            className="mt-1 block rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900"
+            className="mt-1 block rounded-full border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900 dark:text-slate-100"
           />
         </label>
         <div className="flex gap-2 pb-0.5">
@@ -320,7 +320,7 @@ function HorarioForm(props: {
           <button
             type="button"
             onClick={props.onCancel}
-            className={`${ICON_BTN} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300`}
+            className={`${ICON_BTN} border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 focus:ring-slate-300`}
             aria-label="Cancelar"
             title="Cancelar"
           >
@@ -328,7 +328,7 @@ function HorarioForm(props: {
           </button>
         </div>
       </div>
-      {props.formError && <p className="text-xs text-rose-600 font-medium" role="alert">{props.formError}</p>}
+      {props.formError && <p className="text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">{props.formError}</p>}
     </div>
   );
 }
@@ -376,8 +376,8 @@ export function FichaDetailPage() {
   if (error || !ficha) {
     return (
       <div className="py-12 text-center">
-        <p className="text-rose-600 font-medium">Ficha no encontrada</p>
-        <Link to="/fichas" className="mt-4 inline-block text-sm font-semibold text-navy-900 hover:underline">
+        <p className="text-rose-600 dark:text-rose-400 font-medium">Ficha no encontrada</p>
+        <Link to="/fichas" className="mt-4 inline-block text-sm font-semibold text-navy-900 dark:text-emerald-300 hover:underline">
           Volver a la lista
         </Link>
       </div>
@@ -424,7 +424,7 @@ export function FichaDetailPage() {
       <div>
         <Link
           to="/fichas"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-navy-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-navy-900 dark:hover:text-emerald-300 transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -434,13 +434,13 @@ export function FichaDetailPage() {
       </div>
 
       {/* Header Card */}
-      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 ficha.archivada
-                  ? 'bg-slate-100 text-slate-600'
+                  ? 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400'
                   : ficha.finalizada
                   ? 'bg-blue-50 text-blue-700'
                   : 'bg-emerald-50 text-emerald-700'
@@ -448,20 +448,20 @@ export function FichaDetailPage() {
                 <span className={`h-2 w-2 rounded-full ${estadoDot}`} aria-hidden="true" />
                 {estado}
               </span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-mono font-medium text-slate-600">
+              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
                 {ficha.codigo}
               </span>
               {trimestre && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-400">
                   {trimestre}
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               {ficha.nombre}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               Iniciada el {formatDate(ficha.fechaInicio, 'long')}
             </p>
           </div>
@@ -485,21 +485,21 @@ export function FichaDetailPage() {
 
         {/* Summary Stats bar inside the header */}
         <div className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-4">
-          <div className="rounded-2xl bg-slate-50/80 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Estudiantes</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900">{estudiantes?.length ?? '—'}</p>
+          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Estudiantes</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{estudiantes?.length ?? '—'}</p>
           </div>
-          <div className="rounded-2xl bg-slate-50/80 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total clases</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900">{ficha.totalClases}</p>
+          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total clases</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{ficha.totalClases}</p>
           </div>
-          <div className="rounded-2xl bg-slate-50/80 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Clases restantes</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900">{clasesRestantes}</p>
+          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Clases restantes</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{clasesRestantes}</p>
           </div>
-          <div className="rounded-2xl bg-slate-50/80 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Nota mínima</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900">{ficha.notaMinimaAprobacion.toFixed(1)}</p>
+          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Nota mínima</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{ficha.notaMinimaAprobacion.toFixed(1)}</p>
           </div>
         </div>
       </div>
@@ -507,7 +507,7 @@ export function FichaDetailPage() {
       {/* Two columns: Info & Modules */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Información General */}
-        <section aria-label="Información General" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        <section aria-label="Información General" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -518,32 +518,32 @@ export function FichaDetailPage() {
           </div>
           <dl className="space-y-3.5 p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500">Fecha de inicio</dt>
-              <dd className="text-sm font-semibold text-slate-800">{formatDate(ficha.fechaInicio, 'long')}</dd>
+              <dt className="text-sm text-slate-500 dark:text-slate-400">Fecha de inicio</dt>
+              <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatDate(ficha.fechaInicio, 'long')}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500">Trimestre</dt>
-              <dd className="text-sm font-semibold text-slate-800">{trimestre}</dd>
+              <dt className="text-sm text-slate-500 dark:text-slate-400">Trimestre</dt>
+              <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100">{trimestre}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500">Estudiantes matriculados</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-800">{estudiantes?.length ?? '—'}</dd>
+              <dt className="text-sm text-slate-500 dark:text-slate-400">Estudiantes matriculados</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{estudiantes?.length ?? '—'}</dd>
             </div>
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500">Nota mínima aprobatoria</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-800">
+              <dt className="text-sm text-slate-500 dark:text-slate-400">Nota mínima aprobatoria</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
                 {ficha.notaMinimaAprobacion.toFixed(1)}
               </dd>
             </div>
             <div className="pt-1">
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-sm text-slate-500">Progreso de clases</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Progreso de clases</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
                   {realizadas} / {ficha.totalClases} ({avancePct}%)
                 </dd>
               </div>
               <div
-                className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
                 role="progressbar"
                 aria-valuenow={avancePct}
                 aria-valuemin={0}
@@ -560,7 +560,7 @@ export function FichaDetailPage() {
         </section>
 
         {/* Módulos de Gestión */}
-        <section aria-label="Módulos de Gestión" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        <section aria-label="Módulos de Gestión" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -574,19 +574,19 @@ export function FichaDetailPage() {
               <Link
                 key={a.label}
                 to={a.to}
-                className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
+                className="group flex items-center justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 dark:bg-white/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-emerald-400 group-hover:scale-105 transition-transform">
                     <ActionGlyph d={a.d} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-navy-900">{a.label}</p>
-                    <p className="truncate text-xs text-slate-500">{a.desc}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-navy-900 dark:group-hover:text-emerald-300">{a.label}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{a.desc}</p>
                   </div>
                 </div>
                 <svg
-                  className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                  className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

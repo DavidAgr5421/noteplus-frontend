@@ -9,9 +9,9 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
     const variantStyles = {
-      default: 'rounded-2xl bg-white/95 shadow-sm border border-slate-100/80',
-      outlined: 'rounded-2xl bg-white border border-slate-200/60 shadow-xs',
-      elevated: 'rounded-2xl bg-white shadow-md shadow-slate-900/5 border border-slate-100/60',
+      default: 'rounded-2xl bg-white/95 shadow-sm border border-slate-100/80 dark:bg-slate-900/95 dark:border-white/10',
+      outlined: 'rounded-2xl bg-white border border-slate-200/60 shadow-xs dark:bg-slate-900 dark:border-white/10',
+      elevated: 'rounded-2xl bg-white shadow-md shadow-slate-900/5 border border-slate-100/60 dark:bg-slate-900 dark:border-white/10 dark:shadow-black/30',
       ghost: 'rounded-2xl bg-transparent',
     };
     
@@ -52,7 +52,7 @@ export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
 
 export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, children, ...props }, ref) => (
-    <h3 ref={ref} className={classNames('text-lg font-semibold text-gray-900', className)} {...props}>
+    <h3 ref={ref} className={classNames('text-lg font-semibold text-gray-900 dark:text-white', className)} {...props}>
       {children}
     </h3>
   )
@@ -64,7 +64,7 @@ export interface CardDescriptionProps extends HTMLAttributes<HTMLParagraphElemen
 
 export const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
   ({ className, children, ...props }, ref) => (
-    <p ref={ref} className={classNames('mt-1 text-sm text-gray-500', className)} {...props}>
+    <p ref={ref} className={classNames('mt-1 text-sm text-gray-500 dark:text-slate-400', className)} {...props}>
       {children}
     </p>
   )
@@ -88,7 +88,7 @@ export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {}
 
 export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
   ({ className, children, ...props }, ref) => (
-    <div ref={ref} className={classNames('mt-4 pt-4 border-t border-gray-100 flex items-center gap-3', className)} {...props}>
+    <div ref={ref} className={classNames('mt-4 pt-4 border-t border-gray-100 dark:border-white/10 flex items-center gap-3', className)} {...props}>
       {children}
     </div>
   )

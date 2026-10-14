@@ -11,7 +11,7 @@ export function FormatoHoraToggle() {
 
   return (
     <div
-      className="inline-flex items-center rounded-full border border-slate-200/80 bg-white p-0.5 shadow-xs"
+      className="inline-flex items-center rounded-full border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-0.5 shadow-xs"
       role="group"
       aria-label="Formato de hora"
     >
@@ -23,7 +23,7 @@ export function FormatoHoraToggle() {
           aria-pressed={formato === op.valor}
           title={op.titulo}
           className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-            formato === op.valor ? 'bg-navy-900 text-emerald-400 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            formato === op.valor ? 'bg-navy-900 text-emerald-400 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'
           }`}
         >
           {op.etiqueta}

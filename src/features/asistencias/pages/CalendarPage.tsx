@@ -101,14 +101,14 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
         <div>
           {highlightFichaId && (
-            <Link to={`/fichas/${highlightFichaId}`} className="text-xs text-blue-600 hover:underline">
+            <Link to={`/fichas/${highlightFichaId}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
               ← Volver a la ficha
             </Link>
           )}
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
             {highlightFicha ? `Asistencias — ${highlightFicha.nombre}` : 'Calendario de Clases'}
           </h1>
-          <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
+          <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Consulta y gestiona las clases programadas por fecha
           </p>
         </div>
@@ -124,10 +124,10 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Calendar Section (roughly 80% / 9 cols on desktop) */}
         <div className="lg:col-span-8 xl:col-span-9 min-w-0">
-          <Card variant="outlined" className="bg-white/95 shadow-xs">
-            <CardHeader className="border-b border-slate-100/90 pb-3">
+          <Card variant="outlined" className="bg-white/95 dark:bg-slate-900/95 shadow-xs">
+            <CardHeader className="border-b border-slate-100/90 dark:border-white/10 pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-bold capitalize text-slate-900">
+                <CardTitle className="text-lg font-bold capitalize text-slate-900 dark:text-white">
                   {monthName}
                 </CardTitle>
                 <div className="flex gap-1.5">
@@ -159,7 +159,7 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
             <CardContent className="pt-4">
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day) => (
-                  <div key={day} className="text-center text-xs font-semibold uppercase tracking-wider text-slate-400 py-1">
+                  <div key={day} className="text-center text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 py-1">
                     {day}
                   </div>
                 ))}
@@ -174,13 +174,13 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
                       key={index}
                       className={`min-h-[105px] p-2 border rounded-xl transition-all ${
                         today
-                          ? 'bg-emerald-50/70 border-emerald-400/80 shadow-xs'
-                          : 'bg-white/80 border-slate-200/70 hover:border-slate-300'
+                          ? 'bg-emerald-50/70 dark:bg-emerald-500/15 border-emerald-400/80 dark:border-emerald-400/40 shadow-xs'
+                          : 'bg-white/80 dark:bg-white/5 border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25'
                       }`}
                     >
                       {date && (
                         <>
-                          <div className={`text-xs font-bold ${today ? 'text-emerald-800 font-extrabold' : 'text-slate-700'}`}>
+                          <div className={`text-xs font-bold ${today ? 'text-emerald-800 dark:text-emerald-300 font-extrabold' : 'text-slate-700 dark:text-slate-300'}`}>
                             {date.getDate()}
                           </div>
                           <div className="mt-1 space-y-1">
@@ -208,20 +208,20 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
         <aside className="lg:col-span-4 xl:col-span-3 min-w-0 space-y-4 lg:sticky lg:top-20" aria-label="Clases de hoy y resumen">
           {/* Header Clases de Hoy */}
           <div className="flex items-center justify-between gap-2 px-1">
-            <h2 className="text-base font-bold text-slate-900">Clases de hoy</h2>
-            <span className="shrink-0 rounded-full border border-slate-200/80 bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-700 shadow-xs">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Clases de hoy</h2>
+            <span className="shrink-0 rounded-full border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs">
               {formatDate(todayStr, 'short')}
             </span>
           </div>
 
           {/* Cards for each class today */}
           {todayClases.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-5 text-center shadow-xs">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <div className="rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-5 text-center shadow-xs">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-400 dark:text-slate-500">
                 <CalendarIcon />
               </div>
-              <h3 className="mt-2 text-sm font-bold text-slate-800">Sin clases hoy</h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <h3 className="mt-2 text-sm font-bold text-slate-800 dark:text-slate-100">Sin clases hoy</h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 No tienes ninguna clase programada para el día de hoy.
               </p>
             </div>
@@ -229,46 +229,46 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
             todayClases.map((tc) => (
               <div
                 key={tc.id}
-                className={`rounded-2xl border bg-white/95 p-4 shadow-xs hover:shadow-md transition-all ${
-                  isDimmed(tc) ? 'opacity-40 saturate-50' : 'border-slate-200/80'
+                className={`rounded-2xl border bg-white/95 dark:bg-slate-900/95 p-4 shadow-xs hover:shadow-md transition-all ${
+                  isDimmed(tc) ? 'opacity-40 saturate-50' : 'border-slate-200/80 dark:border-white/10'
                 }`}
               >
                 {/* Top: Nombre de la ficha arriba del todo y su código */}
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-900 truncate" title={tc.ficha?.nombre}>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white truncate" title={tc.ficha?.nombre}>
                     {tc.ficha?.nombre || 'Ficha sin nombre'}
                   </h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
+                    <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-300">
                       {tc.ficha?.codigo}
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         tc.realizada
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-400/20'
+                          : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-400/20'
                       }`}
                     >
                       {tc.realizada ? 'Realizada' : 'Pendiente'}
                     </span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                    <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300">
                       {tc.modalidad}
                     </span>
                   </div>
                 </div>
 
                 {/* Below: Horario */}
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-600">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
                     <ClockIcon />
                   </span>
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
                     {claseHorarioLabel(tc, formato)}
                   </span>
                 </div>
 
                 {/* Below: Botón para tomar asistencia */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10">
                   <Button
                     variant="navyGreen"
                     size="sm"
@@ -284,25 +284,25 @@ export function CalendarPage({ highlightFichaId }: CalendarPageProps = {}) {
           )}
 
           {/* Información relevante adicional: Resumen mensual */}
-          <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5 flex items-center gap-2">
+          <div className="rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-4 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2.5 flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-navy-900 text-emerald-400">
                 <ChartIcon />
               </span>
               Resumen del mes
             </h3>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
-                <p className="text-base font-bold tabular-nums text-slate-900">{totalClasesMes}</p>
-                <p className="text-[10px] font-medium text-slate-500">Programadas</p>
+              <div className="rounded-xl bg-slate-50 dark:bg-white/5 p-2 border border-slate-100 dark:border-white/10">
+                <p className="text-base font-bold tabular-nums text-slate-900 dark:text-white">{totalClasesMes}</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Programadas</p>
               </div>
-              <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
-                <p className="text-base font-bold tabular-nums text-emerald-700">{realizadasMes}</p>
-                <p className="text-[10px] font-medium text-slate-500">Realizadas</p>
+              <div className="rounded-xl bg-slate-50 dark:bg-white/5 p-2 border border-slate-100 dark:border-white/10">
+                <p className="text-base font-bold tabular-nums text-emerald-700 dark:text-emerald-300">{realizadasMes}</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Realizadas</p>
               </div>
-              <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
-                <p className="text-base font-bold tabular-nums text-amber-700">{pendientesMes}</p>
-                <p className="text-[10px] font-medium text-slate-500">Pendientes</p>
+              <div className="rounded-xl bg-slate-50 dark:bg-white/5 p-2 border border-slate-100 dark:border-white/10">
+                <p className="text-base font-bold tabular-nums text-amber-700 dark:text-amber-300">{pendientesMes}</p>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Pendientes</p>
               </div>
             </div>
           </div>
