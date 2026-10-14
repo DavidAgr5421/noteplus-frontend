@@ -362,7 +362,7 @@ export function MarcarAsistenciasPage() {
       <div className={`overflow-x-auto rounded-2xl ${redimensionando ? 'select-none' : ''}`} style={{ zoom }}>
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="bg-[#3b6336] text-left">
+            <tr className="bg-navy-900 text-left">
               <ThAjustable k="fila" className="px-2 py-3" anchos={anchosCol} onResize={iniciarResize}>
                 <span className="sr-only">Fila</span>
               </ThAjustable>
@@ -380,29 +380,29 @@ export function MarcarAsistenciasPage() {
               </ThAjustable>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-300">
+          <tbody className="divide-y divide-slate-200/60">
             {visibles.map((est, i) => {
                 const marca = marcas[est.id];
                 if (!marca) return null;
                 const asistio = marca.estado === 'ASISTIO';
                 const tieneJustificacion = !!marca.justificacion;
                 return (
-                  <tr key={est.id} className="bg-white/40 hover:bg-white/70">
+                  <tr key={est.id} className="bg-white/60 hover:bg-white transition-colors">
                     <td className="px-2 py-3">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-green-600 text-[0.525rem] font-bold tabular-nums text-green-600">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[0.625rem] font-bold tabular-nums text-slate-700">
                         {i + 1}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{est.nombre}</td>
-                    <td className="px-4 py-3 text-gray-500 tabular-nums">{est.identificacion}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{est.nombre}</td>
+                    <td className="px-4 py-3 text-slate-500 tabular-nums">{est.identificacion}</td>
                     <td className="px-4 py-3">
-                      <div className="inline-flex w-fit rounded-full bg-gray-300/60 p-1" role="group" aria-label={`Asistencia de ${est.nombre}`}>
+                      <div className="inline-flex w-fit rounded-full bg-slate-200/60 p-0.5 shadow-xs" role="group" aria-label={`Asistencia de ${est.nombre}`}>
                         <button
                           type="button"
                           onClick={() => setEstado(est.id, 'ASISTIO')}
                           aria-pressed={asistio}
-                          className={`whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium transition-colors ${
-                            asistio ? 'bg-green-300 text-green-950' : 'text-gray-500'
+                          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
+                            asistio ? 'bg-emerald-100 text-emerald-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                           }`}
                         >
                           ✓ Asistió
@@ -411,8 +411,8 @@ export function MarcarAsistenciasPage() {
                           type="button"
                           onClick={() => setEstado(est.id, 'NO_ASISTIO')}
                           aria-pressed={!asistio}
-                          className={`whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium transition-colors ${
-                            !asistio ? 'bg-red-300 text-red-950' : 'text-gray-500'
+                          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
+                            !asistio ? 'bg-[#a16074]/15 text-[#8e5063] border border-[#a16074]/30 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                           }`}
                         >
                           ✗ No asistió
@@ -422,14 +422,14 @@ export function MarcarAsistenciasPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                       {tieneJustificacion && (
-                        <span className="max-w-[120px] truncate text-xs text-gray-500" title={marca.justificacion}>
+                        <span className="max-w-[120px] truncate text-xs text-slate-500" title={marca.justificacion}>
                           {(marca.justificacion || '').slice(0, 10)}
                         </span>
                       )}
                       <button
                         type="button"
                         onClick={() => setJustificando({ id: est.id, nombre: est.nombre })}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 text-white focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
                         aria-label={tieneJustificacion ? `Ver justificación de ${est.nombre}` : `Añadir justificación a ${est.nombre}`}
                         title={tieneJustificacion ? 'Ver justificación' : 'Añadir justificación'}
                       >

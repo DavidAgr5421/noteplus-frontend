@@ -33,6 +33,8 @@ export interface Ficha {
   archivada: boolean;
   finalizada: boolean;
   horarios?: FichaHorario[];
+  numeroEstudiantes?: number;
+  clasesRestantes?: number;
   createdAt?: string;
   updatedAt?: string;
 }

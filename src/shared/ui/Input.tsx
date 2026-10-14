@@ -22,10 +22,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={classNames(
-            'w-full px-4 py-2 border rounded-full bg-white shadow-sm placeholder-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-            'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
-            error ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300',
+            'w-full px-4 py-2 border rounded-full bg-white shadow-xs placeholder-slate-400',
+            'focus:outline-none focus:ring-2 focus:ring-navy-900/30 focus:border-navy-900 transition-colors',
+            'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
+            error ? 'border-rose-300 text-rose-900 placeholder-rose-300 focus:border-rose-500 focus:ring-rose-400' : 'border-slate-200/90 hover:border-slate-300',
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
@@ -33,12 +33,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="mt-1 text-sm text-red-600" role="alert">
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-rose-600 font-medium" role="alert">
             {error}
           </p>
         )}
         {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-1 text-sm text-gray-500">
+          <p id={`${inputId}-helper`} className="mt-1 text-xs text-slate-500">
             {helperText}
           </p>
         )}
@@ -62,7 +62,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 mb-1">
             {label}
           </label>
         )}
@@ -70,10 +70,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={classNames(
-            'w-full px-4 py-2 border rounded-2xl shadow-sm placeholder-gray-400 resize-y min-h-[80px]',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-            'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
-            error ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300',
+            'w-full px-4 py-2 border rounded-2xl shadow-xs placeholder-slate-400 resize-y min-h-[80px]',
+            'focus:outline-none focus:ring-2 focus:ring-navy-900/30 focus:border-navy-900 transition-colors',
+            'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
+            error ? 'border-rose-300 text-rose-900 placeholder-rose-300 focus:border-rose-500 focus:ring-rose-400' : 'border-slate-200/90 hover:border-slate-300',
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
@@ -81,12 +81,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="mt-1 text-sm text-red-600" role="alert">
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-rose-600 font-medium" role="alert">
             {error}
           </p>
         )}
         {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-1 text-sm text-gray-500">
+          <p id={`${inputId}-helper`} className="mt-1 text-xs text-slate-500">
             {helperText}
           </p>
         )}
@@ -112,7 +112,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={selectId} className="block text-sm font-medium text-slate-700 mb-1">
             {label}
           </label>
         )}
@@ -120,10 +120,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={classNames(
-            'w-full px-4 py-2 border rounded-full shadow-sm appearance-none',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-            'disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed',
-            error ? 'border-red-300 text-red-900 focus:border-red-500 focus:ring-red-500' : 'border-gray-300',
+            'w-full px-4 py-2 border rounded-full shadow-xs appearance-none bg-white',
+            'focus:outline-none focus:ring-2 focus:ring-navy-900/30 focus:border-navy-900 transition-colors',
+            'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
+            error ? 'border-rose-300 text-rose-900 focus:border-rose-500 focus:ring-rose-400' : 'border-slate-200/90 hover:border-slate-300',
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
@@ -138,7 +138,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <p id={`${selectId}-error`} className="mt-1 text-sm text-red-600" role="alert">
+          <p id={`${selectId}-error`} className="mt-1 text-xs text-rose-600 font-medium" role="alert">
             {error}
           </p>
         )}

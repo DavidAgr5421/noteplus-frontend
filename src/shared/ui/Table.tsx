@@ -39,14 +39,16 @@ export function Table<T>({
   return (
     <div className="overflow-x-auto">
       <table className={classNames('w-full text-sm', className)} {...props}>
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            {columns.map((column) => (
+        <thead>
+          <tr className="bg-navy-900 text-white text-xs uppercase tracking-wider font-semibold">
+            {columns.map((column, idx) => (
               <th
                 key={column.key}
                 scope="col"
                 className={classNames(
-                  'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider',
+                  'px-4 py-3 text-left',
+                  idx === 0 && 'rounded-l-2xl',
+                  idx === columns.length - 1 && 'rounded-r-2xl',
                   column.headerClassName
                 )}
                 style={{ width: column.width }}
@@ -139,7 +141,7 @@ export function TablePagination({
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="px-4 py-1 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-1 text-sm border border-slate-200/80 rounded-full focus:outline-none focus:ring-2 focus:ring-navy-900 bg-white"
             aria-label="Tamaño de página"
           >
             <option value={10}>10 por página</option>
@@ -151,7 +153,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 text-slate-500 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Primera página"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -161,7 +163,7 @@ export function TablePagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 text-slate-500 hover:text-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Página anterior"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,10 +176,10 @@ export function TablePagination({
               key={page}
               onClick={() => onPageChange(page)}
               className={classNames(
-                'px-4 py-1.5 text-sm rounded-full font-medium transition-colors',
+                'px-3.5 py-1 text-sm rounded-full font-medium transition-all',
                 page === currentPage
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-navy-900 text-white shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100'
               )}
               aria-current={page === currentPage ? 'page' : undefined}
               aria-label={`Página ${page}`}

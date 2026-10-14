@@ -214,7 +214,7 @@ export function Navbar() {
             type="button"
             onClick={() => logout()}
             disabled={isLogoutPending}
-            className="whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-white/10 hover:text-red-300 disabled:opacity-50"
+            className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-[#a16074] transition-colors hover:bg-white/10 hover:text-[#b87489] focus:outline-none focus:ring-2 focus:ring-[#a16074]/40 disabled:opacity-50"
           >
             Cerrar sesión
           </button>

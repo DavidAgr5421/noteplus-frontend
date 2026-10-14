@@ -1,5 +1,18 @@
-export const formatDate = (date: string | Date, format: 'short' | 'long' | 'time' = 'short'): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
+export const parseLocalDate = (date: string | Date | null | undefined): Date => {
+  if (!date) return new Date(NaN);
+  if (date instanceof Date) return date;
+  if (typeof date === 'string') {
+    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, y, m, d] = match;
+      return new Date(Number(y), Number(m) - 1, Number(d));
+    }
+  }
+  return new Date(date);
+};
+
+export const formatDate = (date: string | Date | null | undefined, format: 'short' | 'long' | 'time' = 'short'): string => {
+  const d = parseLocalDate(date);
   if (isNaN(d.getTime())) return '';
   
   const options: Intl.DateTimeFormatOptions = 
@@ -12,10 +25,13 @@ export const formatDate = (date: string | Date, format: 'short' | 'long' | 'time
   return d.toLocaleDateString('es-CO', options);
 };
 
-export const formatDateForInput = (date: string | Date): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
+export const formatDateForInput = (date: string | Date | null | undefined): string => {
+  const d = parseLocalDate(date);
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export const parseTime = (time: string): Date => {
@@ -66,10 +82,16 @@ export const getShortDayName = (dayIndex: number): string => {
   return days[dayIndex] || '';
 };
 
-export const isToday = (date: string): boolean => {
+export const isToday = (date: string | Date | null | undefined): boolean => {
+  if (!date) return false;
   const today = new Date();
-  const target = new Date(date);
-  return today.toDateString() === target.toDateString();
+  const target = parseLocalDate(date);
+  if (isNaN(target.getTime())) return false;
+  return (
+    today.getFullYear() === target.getFullYear() &&
+    today.getMonth() === target.getMonth() &&
+    today.getDate() === target.getDate()
+  );
 };
 
 export const roundToOneDecimal = (value: number): number => {

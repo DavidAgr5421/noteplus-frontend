@@ -301,7 +301,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
           <ClockFace time={horaFin} label="Fin" />
           <div className="text-center sm:text-left">
             <p className="text-sm text-gray-600">Duración por clase</p>
-            <p className="text-xl font-bold text-blue-700">
+            <p className="text-xl font-bold text-navy-900">
               {duracion > 0 ? formatDuration(duracion) : '—'}
             </p>
           </div>
@@ -312,21 +312,21 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
             + Agregar horario
           </Button>
           {scheduleError && (
-            <p className="mt-2 text-center text-sm text-red-600" role="alert">{scheduleError}</p>
+            <p className="mt-2 text-center text-xs text-rose-600 font-medium" role="alert">{scheduleError}</p>
           )}
         </div>
 
         {/* Horarios agregados */}
         {horarios.length > 0 && (
-          <ul className="mx-auto mt-4 max-w-xl divide-y divide-gray-100 rounded-2xl border border-gray-200">
+          <ul className="mx-auto mt-4 max-w-xl divide-y divide-slate-100 rounded-2xl border border-slate-200/60 bg-white">
             {horarios.map((h) => (
               <li key={`${h.diaSemana}-${h.hora}`} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-emerald-400">
                   {getShortDayName(h.diaSemana).charAt(0)}
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{getDayName(h.diaSemana)}</p>
-                  <p className="text-sm text-gray-500 tabular-nums">
+                  <p className="text-sm font-medium text-slate-900">{getDayName(h.diaSemana)}</p>
+                  <p className="text-xs text-slate-500 tabular-nums">
                     {h.hora} – {formatDuration(h.duracionMinutos)} por clase
                   </p>
                 </div>
@@ -335,7 +335,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
                   variant="ghost"
                   size="sm"
                   onClick={() => removeHorario(h.diaSemana, h.hora)}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                   aria-label={`Quitar horario del ${getDayName(h.diaSemana)}`}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

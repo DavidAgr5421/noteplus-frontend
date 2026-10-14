@@ -131,7 +131,7 @@ export function AsistenciasPage() {
                   <col className="w-[14%]" />
                 </colgroup>
                 <thead>
-                  <tr className="divide-x divide-white/20 rounded-xl bg-[#3b6336] text-sm font-semibold text-white">
+                  <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
                     <th className="rounded-l-xl px-4 py-3 text-left">Día</th>
                     <th className="px-4 py-3 text-left">Fecha</th>
                     <th className="px-2 py-3 text-center">Horario</th>
@@ -142,7 +142,7 @@ export function AsistenciasPage() {
                 </thead>
                 <tbody>
                   {clasesFicha.map(clase => (
-                    <tr key={clase.id} className="divide-x divide-gray-200/70 border-b border-gray-100 align-middle">
+                    <tr key={clase.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors align-middle">
                       <td className="px-4 py-3 font-medium text-gray-900">
                         {formatDate(clase.fecha, 'long')}
                       </td>

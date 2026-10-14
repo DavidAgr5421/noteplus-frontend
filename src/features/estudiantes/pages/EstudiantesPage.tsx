@@ -190,7 +190,7 @@ export function EstudiantesPage() {
             ) : (
               <table className="w-full table-fixed border-collapse text-sm">
                 <thead>
-                  <tr className="rounded-xl bg-[#30542b] text-sm font-semibold text-white">
+                  <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
                     <th className="rounded-l-xl px-4 py-3 text-left">Nombre</th>
                     <th className="px-2 py-3 text-center">Tipo doc.</th>
                     <th className="px-2 py-3 text-center">Identificación</th>
@@ -201,43 +201,43 @@ export function EstudiantesPage() {
                 </thead>
                 <tbody>
                   {paginatedEstudiantes.map((row) => (
-                    <tr key={row.id} className="border-b border-gray-100 align-middle">
-                      <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
+                    <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors align-middle">
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
                         {row.nombre}
                       </td>
-                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500">
                         {row.tipoIdentificacion || 'CC'}
                       </td>
-                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-2 py-3 text-center tabular-nums text-sm text-slate-500">
                         {row.identificacion}
                       </td>
-                      <td className="truncate px-2 py-3 text-center text-sm text-gray-500">
+                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500">
                         {row.email || '-'}
                       </td>
-                      <td className="truncate px-2 py-3 text-center text-sm text-gray-500">
+                      <td className="truncate px-2 py-3 text-center text-sm text-slate-500">
                         {row.contacto || '-'}
                       </td>
                       <td className="px-2 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => { setEditingEstudiante(row); setModalOpen(true); }}
-                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
                             aria-label={`Editar ${row.nombre}`}
                             title="Editar"
                           >
-                            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h4L19.5 8.5a2.12 2.12 0 00-3-3L5 17v3zM14.5 6.5l3 3M13 20h7" />
                             </svg>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(row)}
-                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a16074]/10 text-[#a16074] border border-[#a16074]/30 transition-colors hover:bg-[#a16074]/20 focus:outline-none focus:ring-2 focus:ring-[#a16074]/40"
                             aria-label={`Eliminar ${row.nombre}`}
                             title="Eliminar"
                           >
-                            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4.5A1.5 1.5 0 019.5 3h5A1.5 1.5 0 0116 4.5V6m-11 0l1 13.1A1.9 1.9 0 006.9 21h10.2a1.9 1.9 0 001.89-1.9L20 6M10 10.5v6M14 10.5v6" />
                             </svg>
                           </button>

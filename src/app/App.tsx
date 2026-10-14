@@ -93,7 +93,7 @@ function AppRoutes() {
 }
 
 const PAGE_GRADIENT = {
-  backgroundImage: 'linear-gradient(160deg, #d3e3f4 0%, #e8f0f9 45%, #f5f8f7 100%)',
+  backgroundImage: 'linear-gradient(160deg, #e4e8ee 0%, #ebedf2 45%, #f4f6f9 100%)',
 };
 
 function MainLayout() {

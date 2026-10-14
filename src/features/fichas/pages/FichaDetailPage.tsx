@@ -15,11 +15,6 @@ function trimestreFallback(fechaInicio: string): string {
   return `T${Math.ceil(month / 3)} ${year}`;
 }
 
-/** Verde oscuro de marca para los encabezados de tarjeta, con brillo blanco superior. */
-const CARD_HEADER_STYLE = {
-  background: 'linear-gradient(to bottom, rgba(255,255,255,0.14), rgba(255,255,255,0) 55%), #14532d',
-} as const;
-
 function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -44,11 +39,11 @@ function formatDuration(min: number): string {
 }
 
 const ICON_BTN =
-  'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-1';
 
 function ActionGlyph({ d }: { d: string }) {
   return (
-    <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d={d} />
     </svg>
   );
@@ -134,29 +129,34 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
   const showForm = adding || editIndex !== null;
 
   return (
-    <section aria-label="Horarios" className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between px-5 py-2" style={CARD_HEADER_STYLE}>
-        <h2 className="text-sm font-semibold text-white">Horarios</h2>
+    <section aria-label="Horarios" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
+        <div className="flex items-center gap-2">
+          <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-sm font-semibold tracking-wide text-white">Horarios de clase</h2>
+        </div>
         {!showForm && (
           <button
             type="button"
             onClick={() => { setAdding(true); setEditIndex(null); setFormError(null); }}
-            className={`${ICON_BTN} !h-7 !w-7 border border-white/40 bg-transparent text-white hover:bg-white/10 focus:ring-white`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
             aria-label="Añadir horario"
-            title="Añadir horario"
           >
             <ActionGlyph d={PLUS_PATH} />
+            <span>Añadir horario</span>
           </button>
         )}
       </div>
 
-      <div className="p-6">
+      <div className="p-5 sm:p-6">
         {sorted.length === 0 && !showForm && (
-          <p className="text-sm text-gray-500">Aún no hay horarios definidos para esta ficha.</p>
+          <p className="text-sm text-slate-500">Aún no hay horarios definidos para esta ficha.</p>
         )}
 
         {sorted.length > 0 && (
-          <ul className="divide-y divide-gray-100 rounded-2xl border border-gray-200">
+          <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200/70 bg-white">
             {sorted.map((h, i) => (
               <li key={`${h.diaSemana}-${h.hora}-${i}`} className="flex items-center gap-3 px-4 py-3">
                 {editIndex === i ? (
@@ -174,19 +174,19 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
                   </div>
                 ) : (
                   <>
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-white">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-emerald-400">
                       {getShortDayName(h.diaSemana).charAt(0)}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{getDayName(h.diaSemana)}</p>
-                      <p className="text-sm tabular-nums text-gray-500">
+                      <p className="text-sm font-semibold text-slate-900">{getDayName(h.diaSemana)}</p>
+                      <p className="text-xs tabular-nums text-slate-500">
                         {formatHora(h.hora, formato)} · {formatDuration(h.duracionMinutos)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => startEdit(i)}
-                      className={`${ICON_BTN} border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500`}
+                      className={`${ICON_BTN} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300`}
                       aria-label={`Editar horario del ${getDayName(h.diaSemana)}`}
                       title="Editar"
                     >
@@ -195,7 +195,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
                     <button
                       type="button"
                       onClick={() => setDeleteIndex(i)}
-                      className={`${ICON_BTN} bg-red-600 text-white hover:bg-red-700 focus:ring-red-500`}
+                      className={`${ICON_BTN} bg-[#a16074]/10 text-[#a16074] border border-[#a16074]/30 hover:bg-[#a16074]/20 focus:ring-[#a16074]/40`}
                       aria-label={`Eliminar horario del ${getDayName(h.diaSemana)}`}
                       title="Eliminar"
                     >
@@ -209,7 +209,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         )}
 
         {adding && (
-          <div className="mt-4 rounded-2xl border border-gray-200 p-4">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
             <HorarioForm
               day={day} setDay={setDay}
               horaInicio={horaInicio} setHoraInicio={setHoraInicio}
@@ -223,7 +223,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
           </div>
         )}
 
-        <p className="mt-4 text-xs text-gray-400">
+        <p className="mt-4 text-xs text-slate-400">
           Inicio de la ficha: {formatDate(fechaInicio, 'long')}. Los cambios de horario aplican a futuras programaciones.
         </p>
       </div>
@@ -234,12 +234,12 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         title="Eliminar horario"
         size="sm"
         headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-        titleClassName="text-lg font-semibold text-white"
+        titleClassName="text-base font-semibold text-white"
         closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-gray-600">
+        <p className="text-sm text-slate-600">
           ¿Eliminar el horario del{' '}
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-slate-900">
             {deleteIndex !== null
               ? `${getDayName(sorted[deleteIndex].diaSemana)} ${formatHora(sorted[deleteIndex].hora, formato)}`
               : ''}
@@ -247,8 +247,10 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
           ? Las clases futuras no se regeneran automáticamente.
         </p>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setDeleteIndex(null)}>Cancelar</Button>
-          <Button variant="danger" loading={update.isPending} onClick={confirmRemove}>
+          <Button variant="ghost" size="sm" onClick={() => setDeleteIndex(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" size="sm" loading={update.isPending} onClick={confirmRemove}>
             Eliminar
           </Button>
         </div>
@@ -278,7 +280,7 @@ function HorarioForm(props: {
             aria-pressed={props.day === d}
             title={getDayName(d)}
             className={`h-9 w-9 rounded-full text-xs font-bold transition-colors ${
-              props.day === d ? 'bg-navy-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              props.day === d ? 'bg-navy-900 text-emerald-400' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
             {getShortDayName(d).charAt(0)}
@@ -286,22 +288,22 @@ function HorarioForm(props: {
         ))}
       </div>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-xs font-medium text-gray-600">
+        <label className="block text-xs font-medium text-slate-600">
           De
           <input
             type="time"
             value={props.horaInicio}
             onChange={(e) => props.setHoraInicio(e.target.value)}
-            className="mt-1 block rounded-full border border-gray-300 bg-white px-4 py-1.5 text-sm font-semibold tabular-nums focus:border-blue-500 focus:outline-none"
+            className="mt-1 block rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900"
           />
         </label>
-        <label className="block text-xs font-medium text-gray-600">
+        <label className="block text-xs font-medium text-slate-600">
           A
           <input
             type="time"
             value={props.horaFin}
             onChange={(e) => props.setHoraFin(e.target.value)}
-            className="mt-1 block rounded-full border border-gray-300 bg-white px-4 py-1.5 text-sm font-semibold tabular-nums focus:border-blue-500 focus:outline-none"
+            className="mt-1 block rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900"
           />
         </label>
         <div className="flex gap-2 pb-0.5">
@@ -309,7 +311,7 @@ function HorarioForm(props: {
             type="button"
             onClick={props.onSave}
             disabled={props.saving}
-            className={`${ICON_BTN} bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-800 disabled:opacity-50`}
+            className={`${ICON_BTN} bg-navy-900 text-emerald-400 hover:bg-navy-800 focus:ring-navy-900 disabled:opacity-50`}
             aria-label={props.saveLabel}
             title={props.saveLabel}
           >
@@ -318,7 +320,7 @@ function HorarioForm(props: {
           <button
             type="button"
             onClick={props.onCancel}
-            className={`${ICON_BTN} border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500`}
+            className={`${ICON_BTN} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-300`}
             aria-label="Cancelar"
             title="Cancelar"
           >
@@ -326,7 +328,7 @@ function HorarioForm(props: {
           </button>
         </div>
       </div>
-      {props.formError && <p className="text-sm text-red-600" role="alert">{props.formError}</p>}
+      {props.formError && <p className="text-xs text-rose-600 font-medium" role="alert">{props.formError}</p>}
     </div>
   );
 }
@@ -366,7 +368,7 @@ export function FichaDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-navy-900 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy-900 border-t-transparent" />
       </div>
     );
   }
@@ -374,8 +376,8 @@ export function FichaDetailPage() {
   if (error || !ficha) {
     return (
       <div className="py-12 text-center">
-        <p className="text-red-600">Ficha no encontrada</p>
-        <Link to="/fichas" className="mt-4 inline-block text-blue-600 hover:underline">
+        <p className="text-rose-600 font-medium">Ficha no encontrada</p>
+        <Link to="/fichas" className="mt-4 inline-block text-sm font-semibold text-navy-900 hover:underline">
           Volver a la lista
         </Link>
       </div>
@@ -383,113 +385,214 @@ export function FichaDetailPage() {
   }
 
   const estado = ficha.archivada ? 'Archivada' : ficha.finalizada ? 'Finalizada' : 'Activa';
-  const estadoDot = ficha.archivada ? 'bg-gray-400' : ficha.finalizada ? 'bg-blue-500' : 'bg-brand-green';
+  const estadoDot = ficha.archivada ? 'bg-slate-400' : ficha.finalizada ? 'bg-blue-500' : 'bg-emerald-500';
   const trimestre = ficha.trimestre?.trim() || trimestreFallback(ficha.fechaInicio.slice(0, 10));
 
   const realizadas = Math.max(0, Math.min(ficha.totalClases, ficha.totalClases - clasesRestantes));
   const avancePct = ficha.totalClases > 0 ? Math.round((realizadas / ficha.totalClases) * 100) : 0;
 
   const acciones = [
-    { to: `/fichas/${ficha.id}/estudiantes`, label: 'Estudiantes', d: USERS_PATH },
-    { to: `/fichas/${ficha.id}/actividades`, label: 'Actividades', d: CLIPBOARD_PATH },
-    { to: `/fichas/${ficha.id}/asistencias`, label: 'Asistencias', d: CALCHECK_PATH },
-    { to: `/fichas/${ficha.id}/actividades#calificaciones`, label: 'Calificaciones', d: CHART_PATH },
+    {
+      to: `/fichas/${ficha.id}/estudiantes`,
+      label: 'Estudiantes',
+      desc: 'Lista de aprendices, contacto y estado',
+      d: USERS_PATH,
+    },
+    {
+      to: `/fichas/${ficha.id}/actividades`,
+      label: 'Actividades',
+      desc: 'Creación y seguimiento de evidencias',
+      d: CLIPBOARD_PATH,
+    },
+    {
+      to: `/fichas/${ficha.id}/asistencias`,
+      label: 'Asistencias',
+      desc: 'Registro diario y porcentaje por aprendiz',
+      d: CALCHECK_PATH,
+    },
+    {
+      to: `/fichas/${ficha.id}/actividades#calificaciones`,
+      label: 'Calificaciones',
+      desc: 'Planilla de notas y promedios finales',
+      d: CHART_PATH,
+    },
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
-      {/* Encabezado con degradado blanco en su propia sección */}
-      <div
-        className="rounded-3xl px-5 py-4"
-        style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0))' }}
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl">{ficha.nombre}</h1>
-            <p className="mt-2 text-base text-gray-500">Código: {ficha.codigo}</p>
-            <p className="mt-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-              <span className={`h-2.5 w-2.5 rounded-full ${estadoDot}`} aria-hidden="true" />
-              {estado}
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* Breadcrumb */}
+      <div>
+        <Link
+          to="/fichas"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-navy-900 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Volver a Mis Fichas
+        </Link>
+      </div>
+
+      {/* Header Card */}
+      <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                ficha.archivada
+                  ? 'bg-slate-100 text-slate-600'
+                  : ficha.finalizada
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-emerald-50 text-emerald-700'
+              }`}>
+                <span className={`h-2 w-2 rounded-full ${estadoDot}`} aria-hidden="true" />
+                {estado}
+              </span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-mono font-medium text-slate-600">
+                {ficha.codigo}
+              </span>
+              {trimestre && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                  {trimestre}
+                </span>
+              )}
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              {ficha.nombre}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Iniciada el {formatDate(ficha.fechaInicio, 'long')}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2.5 pr-1 pt-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900 text-white">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </span>
-            <span className="flex flex-col leading-tight">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Trimestre</span>
-              <span className="text-sm font-semibold text-gray-800">{trimestre}</span>
-            </span>
+
+          {/* Quick CTA Actions */}
+          <div className="flex flex-wrap items-center gap-2 sm:self-center">
+            <Link to={`/fichas/${ficha.id}/editar`}>
+              <Button variant="outline" size="sm">
+                <ActionGlyph d={PENCIL_PATH} />
+                <span>Editar ficha</span>
+              </Button>
+            </Link>
+            <Link to={`/fichas/${ficha.id}/asistencias`}>
+              <Button variant="navyGreen" size="sm">
+                <ActionGlyph d={CALCHECK_PATH} />
+                <span>Tomar asistencia</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Summary Stats bar inside the header */}
+        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-4">
+          <div className="rounded-2xl bg-slate-50/80 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Estudiantes</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900">{estudiantes?.length ?? '—'}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50/80 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total clases</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900">{ficha.totalClases}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50/80 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Clases restantes</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900">{clasesRestantes}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50/80 p-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Nota mínima</span>
+            <p className="mt-0.5 text-lg font-bold text-slate-900">{ficha.notaMinimaAprobacion.toFixed(1)}</p>
           </div>
         </div>
       </div>
 
-      {/* Línea blanca afilada (sin bloque de degradado debajo) */}
-      <div className="mt-2" aria-hidden="true">
-        <div
-          className="h-[2px] w-full"
-          style={{ background: 'linear-gradient(90deg, transparent 0%, #ffffff 12%, #ffffff 88%, transparent 100%)' }}
-        />
-      </div>
-
-      {/* Dos tarjetas hermanas */}
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <section aria-label="Información" className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-          <div className="px-5 py-2" style={CARD_HEADER_STYLE}>
-            <h2 className="text-sm font-semibold text-white">Información</h2>
+      {/* Two columns: Info & Modules */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Información General */}
+        <section aria-label="Información General" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+          <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h2 className="text-sm font-semibold tracking-wide text-white">Información General</h2>
+            </div>
           </div>
-          <dl className="space-y-4 p-6">
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-gray-500">Inicio</dt>
-              <dd className="text-sm font-semibold text-gray-900">{formatDate(ficha.fechaInicio, 'long')}</dd>
+          <dl className="space-y-3.5 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
+              <dt className="text-sm text-slate-500">Fecha de inicio</dt>
+              <dd className="text-sm font-semibold text-slate-800">{formatDate(ficha.fechaInicio, 'long')}</dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-gray-500">Trimestre</dt>
-              <dd className="text-sm font-semibold text-gray-900">{trimestre}</dd>
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
+              <dt className="text-sm text-slate-500">Trimestre</dt>
+              <dd className="text-sm font-semibold text-slate-800">{trimestre}</dd>
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-gray-500">Estudiantes</dt>
-              <dd className="text-sm font-semibold tabular-nums text-gray-900">{estudiantes?.length ?? '—'}</dd>
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
+              <dt className="text-sm text-slate-500">Estudiantes matriculados</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-800">{estudiantes?.length ?? '—'}</dd>
             </div>
-            <div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-sm text-gray-500">Total clases / Restantes</dt>
-                <dd className="text-sm font-semibold tabular-nums text-gray-900">
-                  {ficha.totalClases} / {clasesRestantes}
-                </dd>
-              </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-valuenow={avancePct} aria-valuemin={0} aria-valuemax={100} aria-label="Avance de clases">
-                <div className="h-full rounded-full bg-brand-green" style={{ width: `${avancePct}%` }} />
-              </div>
-              <p className="mt-1 text-right text-xs tabular-nums text-gray-500">{avancePct}% completado</p>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-gray-500">Nota mínima</dt>
-              <dd className="text-sm font-semibold tabular-nums text-gray-900">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
+              <dt className="text-sm text-slate-500">Nota mínima aprobatoria</dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-800">
                 {ficha.notaMinimaAprobacion.toFixed(1)}
               </dd>
+            </div>
+            <div className="pt-1">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="text-sm text-slate-500">Progreso de clases</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800">
+                  {realizadas} / {ficha.totalClases} ({avancePct}%)
+                </dd>
+              </div>
+              <div
+                className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                role="progressbar"
+                aria-valuenow={avancePct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Avance de clases"
+              >
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${avancePct}%` }}
+                />
+              </div>
             </div>
           </dl>
         </section>
 
-        <section aria-label="Acciones" className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-          <div className="px-5 py-2" style={CARD_HEADER_STYLE}>
-            <h2 className="text-sm font-semibold text-white">Acciones</h2>
+        {/* Módulos de Gestión */}
+        <section aria-label="Módulos de Gestión" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+          <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <h2 className="text-sm font-semibold tracking-wide text-white">Módulos de Gestión</h2>
+            </div>
           </div>
-          <div className="space-y-3 p-6">
+          <div className="space-y-3 p-5 sm:p-6">
             {acciones.map((a) => (
               <Link
                 key={a.label}
                 to={a.to}
-                className="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3 font-medium text-gray-800 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-900 focus:ring-offset-2"
-                style={{ background: 'linear-gradient(to right, #ffffff 0%, #eef2f7 100%)' }}
+                className="group flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-white">
-                  <ActionGlyph d={a.d} />
-                </span>
-                {a.label}
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-emerald-400 group-hover:scale-105 transition-transform">
+                    <ActionGlyph d={a.d} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 group-hover:text-navy-900">{a.label}</p>
+                    <p className="truncate text-xs text-slate-500">{a.desc}</p>
+                  </div>
+                </div>
+                <svg
+                  className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             ))}
           </div>
@@ -497,8 +600,12 @@ export function FichaDetailPage() {
       </div>
 
       {/* Horarios */}
-      <div className="mt-6">
-        <HorariosSection fichaId={ficha.id} fechaInicio={ficha.fechaInicio.slice(0, 10)} horarios={ficha.horarios ?? []} />
+      <div>
+        <HorariosSection
+          fichaId={ficha.id}
+          fechaInicio={ficha.fechaInicio.slice(0, 10)}
+          horarios={ficha.horarios ?? []}
+        />
       </div>
     </div>
   );

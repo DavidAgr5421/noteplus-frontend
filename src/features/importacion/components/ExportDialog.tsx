@@ -109,19 +109,19 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
                 aria-checked={dataset === d.valor}
                 onClick={() => setDataset(d.valor)}
                 className={`w-full rounded-2xl border px-3 py-2 text-left transition-colors ${
-                  dataset === d.valor ? 'border-navy-900 bg-navy-900/5' : 'border-gray-200 hover:border-gray-300'
+                  dataset === d.valor ? 'border-navy-900 bg-navy-900/5' : 'border-slate-200/70 hover:border-slate-300'
                 }`}
               >
-                <span className="block text-sm font-semibold text-gray-900">{d.etiqueta}</span>
-                <span className="block text-xs text-gray-500">{d.descripcion}</span>
+                <span className="block text-sm font-semibold text-slate-900">{d.etiqueta}</span>
+                <span className="block text-xs text-slate-500">{d.descripcion}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium text-gray-700">Formato</p>
-          <div className="flex gap-2 rounded-full bg-gray-100 p-1 text-sm font-medium" role="radiogroup" aria-label="Formato de descarga">
+          <p className="mb-2 text-sm font-medium text-slate-700">Formato</p>
+          <div className="flex gap-2 rounded-full bg-slate-100 p-1 text-sm font-medium" role="radiogroup" aria-label="Formato de descarga">
             {(['csv', 'xlsx'] as const).map((f) => (
               <button
                 key={f}
@@ -129,7 +129,7 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
                 role="radio"
                 aria-checked={formato === f}
                 onClick={() => setFormato(f)}
-                className={`flex-1 rounded-full px-3 py-1.5 ${formato === f ? 'bg-white shadow' : 'text-gray-500'}`}
+                className={`flex-1 rounded-full px-3 py-1.5 transition-all ${formato === f ? 'bg-white shadow-xs font-semibold text-slate-900' : 'text-slate-500'}`}
               >
                 {f === 'csv' ? 'CSV' : 'Excel'}
               </button>
@@ -137,12 +137,12 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
           </div>
         </div>
 
-        {progreso && <p className="text-xs text-gray-500">{progreso}</p>}
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {progreso && <p className="text-xs text-slate-500">{progreso}</p>}
+        {error && <p className="text-xs text-rose-600 font-medium">{error}</p>}
 
         <div className="flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="navy" loading={exporting} onClick={handleDownload}>
+          <Button variant="navyGreen" loading={exporting} onClick={handleDownload}>
             Descargar
           </Button>
         </div>

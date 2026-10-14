@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 import { calificacionesApi } from '@/features/calificaciones/api/calificacionesApi';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
-import { formatHora, getShortDayName } from '@/shared/utils/helpers';
+import { formatHora, getShortDayName, formatDate } from '@/shared/utils/helpers';
 import type { Ficha } from '../types';
 
 function localISODate(now: Date): string {
@@ -23,62 +23,53 @@ function computeHoy(): Hoy {
   return {
     iso: localISODate(now),
     diaSemana: now.getDay(),
-    etiqueta: now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }),
+    etiqueta: now.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' }),
   };
 }
 
-interface Recordatorio {
+interface ClaseRecordatorio {
   key: string;
   titulo: string;
   detalle: string;
   to: string;
 }
 
-function RecordatorioCard({
+interface ActividadRecordatorio {
+  key: string;
+  titulo: string;
+  detalle: string;
+  fecha: string;
+  esHoy: boolean;
+  porcentaje?: number;
+  to: string;
+}
+
+function PanelCard({
   titulo,
   icon,
-  recordatorios,
-  cargando,
-  vacio,
+  badge,
+  children,
 }: {
   titulo: string;
   icon: ReactNode;
-  recordatorios: Recordatorio[];
-  cargando: boolean;
-  vacio: string;
+  badge?: number | string;
+  children: ReactNode;
 }) {
   return (
-    <div className="card-fade rounded-3xl p-4 sm:p-5 transition-colors hover:bg-white">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-900 text-white">
+    <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-xs transition-shadow hover:shadow-sm">
+      <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-900 text-emerald-400">
           {icon}
         </span>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700">{titulo}</h3>
-        {recordatorios.length > 0 && (
-          <span className="ml-auto rounded-full bg-navy-900 px-2 py-0.5 text-xs font-bold text-white">
-            {recordatorios.length}
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">{titulo}</h3>
+        {badge !== undefined && (
+          <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
+            {badge}
           </span>
         )}
       </div>
 
-      <div className="mt-3 space-y-2">
-        {cargando && recordatorios.length === 0 && (
-          <p className="text-sm text-gray-400">Cargando…</p>
-        )}
-        {!cargando && recordatorios.length === 0 && (
-          <p className="text-sm text-gray-500">{vacio}</p>
-        )}
-        {recordatorios.map((r) => (
-          <Link
-            key={r.key}
-            to={r.to}
-            className="block rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2.5 transition-colors hover:border-navy-800 hover:bg-white"
-          >
-            <p className="truncate text-sm font-semibold text-gray-900">{r.titulo}</p>
-            <p className="truncate text-xs text-gray-500">{r.detalle}</p>
-          </Link>
-        ))}
-      </div>
+      <div className="mt-3 space-y-2">{children}</div>
     </div>
   );
 }
@@ -88,19 +79,19 @@ const ClockIcon = (
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2.5}
+      strokeWidth={2}
       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
     />
   </svg>
 );
 
-const AlertIcon = (
+const DocumentIcon = (
   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={2.5}
-      d="M12 9v4m0 4h.01M4.93 4.93l14.14 14.14"
+      strokeWidth={2}
+      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
     />
   </svg>
 );
@@ -113,7 +104,7 @@ export function Recordatorios({ fichas }: { fichas: Ficha[] }) {
   const activas = useMemo(() => fichas.filter((f) => !f.archivada && !f.finalizada), [fichas]);
   const idsActivas = useMemo(() => activas.map((f) => f.id), [activas]);
 
-  const clasesHoy = useMemo<Recordatorio[]>(() => {
+  const clasesHoy = useMemo<ClaseRecordatorio[]>(() => {
     return activas
       .map((ficha) => {
         const horarios = (ficha.horarios ?? [])
@@ -129,7 +120,7 @@ export function Recordatorios({ fichas }: { fichas: Ficha[] }) {
           to: `/fichas/${ficha.id}`,
         };
       })
-      .filter((r): r is Recordatorio => r !== null);
+      .filter((r): r is ClaseRecordatorio => r !== null);
   }, [activas, diaSemanaHoy, formato]);
 
   const actividadQueries = useQueries({
@@ -140,46 +131,131 @@ export function Recordatorios({ fichas }: { fichas: Ficha[] }) {
     })),
   });
 
-  const vencenHoy = useMemo<Recordatorio[]>(() => {
-    const nombres = new Map(fichas.map((f) => [f.id, f.nombre]));
+  const actividades = useMemo<ActividadRecordatorio[]>(() => {
+    const nombres = new Map(fichas.map((f) => [f.id, { nombre: f.nombre, codigo: f.codigo }]));
     return actividadQueries
       .flatMap((q) => q.data ?? [])
-      .filter((a) => a.fechaLimite === hoy.iso)
-      .map((a) => ({
-        key: `actividad-${a.id}`,
-        titulo: a.nombre,
-        detalle: nombres.get(a.fichaId) ?? a.fichaId,
-        to: `/fichas/${a.fichaId}/actividades`,
-      }));
+      .filter((a): a is typeof a & { fechaLimite: string } => Boolean(a.fechaLimite && a.fechaLimite >= hoy.iso))
+      .sort((a, b) => a.fechaLimite.localeCompare(b.fechaLimite))
+      .slice(0, 5)
+      .map((a) => {
+        const fichaInfo = nombres.get(a.fichaId);
+        const esHoy = a.fechaLimite === hoy.iso;
+        return {
+          key: `actividad-${a.id}`,
+          titulo: a.nombre,
+          detalle: fichaInfo ? `${fichaInfo.codigo} · ${fichaInfo.nombre}` : a.fichaId,
+          fecha: a.fechaLimite,
+          esHoy,
+          porcentaje: a.porcentaje,
+          to: `/fichas/${a.fichaId}/actividades`,
+        };
+      });
   }, [actividadQueries, hoy.iso, fichas]);
 
   const cargandoActividades = actividadQueries.some((q) => q.isFetching);
 
   return (
-    <section className="mt-12">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-gray-900">Recordatorios</h2>
-        <span className="shrink-0 whitespace-nowrap rounded-full bg-white px-3.5 py-1.5 text-base font-semibold text-gray-900 shadow-sm">
-          {hoy.etiqueta}
-        </span>
+    <div className="space-y-4">
+      {/* Sidebar Header */}
+      <div className="space-y-3 px-1">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Agenda & Resumen</h2>
+          <p className="mt-0.5 text-xs sm:text-sm text-slate-500">Información relevante de hoy</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/95 px-3.5 py-2 shadow-xs text-xs font-semibold text-slate-700 capitalize">
+          <svg className="h-4 w-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="truncate">{formatDate(new Date(), 'long')}</span>
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-4 border-t border-gray-300 pt-5 lg:grid-cols-2">
-        <RecordatorioCard
-          titulo="Clases de hoy"
-          icon={ClockIcon}
-          recordatorios={clasesHoy}
-          cargando={false}
-          vacio="No tienes clases programadas para hoy."
-        />
-        <RecordatorioCard
-          titulo="Vencen hoy"
-          icon={AlertIcon}
-          recordatorios={vencenHoy}
-          cargando={cargandoActividades}
-          vacio="Ninguna actividad vence hoy."
-        />
+      {/* Clases de hoy */}
+      <PanelCard titulo="Clases de hoy" icon={ClockIcon} badge={clasesHoy.length}>
+        {clasesHoy.length === 0 ? (
+          <p className="py-2 text-center text-xs text-slate-500">
+            No tienes clases programadas para hoy.
+          </p>
+        ) : (
+          clasesHoy.map((c) => (
+            <Link
+              key={c.key}
+              to={c.to}
+              className="group block rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 transition-all hover:border-slate-300 hover:bg-white"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="truncate text-xs font-semibold text-slate-900 group-hover:text-navy-900">
+                  {c.titulo}
+                </p>
+                <span className="shrink-0 text-slate-400 group-hover:translate-x-0.5 transition-transform text-xs">
+                  →
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-[11px] text-slate-500">{c.detalle}</p>
+            </Link>
+          ))
+        )}
+      </PanelCard>
+
+      {/* Actividades */}
+      <PanelCard titulo="Próximas actividades" icon={DocumentIcon} badge={actividades.length}>
+        {cargandoActividades && actividades.length === 0 ? (
+          <p className="py-2 text-center text-xs text-slate-400">Cargando actividades…</p>
+        ) : actividades.length === 0 ? (
+          <p className="py-2 text-center text-xs text-slate-500">
+            No hay actividades próximas a vencer.
+          </p>
+        ) : (
+          actividades.map((a) => (
+            <Link
+              key={a.key}
+              to={a.to}
+              className="group block rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 transition-all hover:border-slate-300 hover:bg-white"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-xs font-semibold text-slate-900 group-hover:text-navy-900">
+                  {a.titulo}
+                </p>
+                {a.esHoy ? (
+                  <span className="shrink-0 rounded-full bg-rose-50 text-rose-700 border border-rose-200/60 px-1.5 py-0.2 text-[10px] font-semibold">
+                    Vence hoy
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.2 text-[10px] font-medium text-slate-600">
+                    {formatDate(a.fecha, 'short')}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                <span className="truncate">{a.detalle}</span>
+                {a.porcentaje !== undefined && (
+                  <span className="shrink-0 font-medium text-emerald-700">
+                    {a.porcentaje}%
+                  </span>
+                )}
+              </div>
+            </Link>
+          ))
+        )}
+      </PanelCard>
+
+      {/* Resumen rápido de fichas */}
+      <div className="rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-xs">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+          Resumen
+        </h3>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
+            <p className="text-lg font-bold tabular-nums text-slate-900">{activas.length}</p>
+            <p className="text-[11px] font-medium text-slate-500">Fichas activas</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
+            <p className="text-lg font-bold tabular-nums text-emerald-700">{clasesHoy.length}</p>
+            <p className="text-[11px] font-medium text-slate-500">Clases hoy</p>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

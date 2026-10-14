@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, CardContent, Input } from '@/shared/ui';
 import { useFichas } from '@/features/fichas/hooks/useFichas';
 import { FichaCard } from '@/features/fichas/components/FichaCard';
+import { classNames } from '@/shared/utils/helpers';
 
 export function AsistenciasFichasPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
-  const { data: fichas, isLoading, error } = useFichas(false);
+  const { data: fichas, isLoading, error } = useFichas(showArchived);
 
   const filtradas = (fichas ?? []).filter((ficha) => {
     const q = query.trim().toLowerCase();
@@ -71,7 +73,40 @@ export function AsistenciasFichasPage() {
             {`${filtradas.length} de ${(fichas ?? []).length} fichas`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div
+            className="flex rounded-full border border-slate-200/80 bg-white/80 p-0.5 shadow-xs"
+            role="group"
+            aria-label="Filtrar fichas"
+          >
+            <button
+              type="button"
+              onClick={() => setShowArchived(false)}
+              aria-pressed={!showArchived}
+              className={classNames(
+                'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
+                !showArchived
+                  ? 'bg-navy-900 text-emerald-400 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              Activas
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowArchived(true)}
+              aria-pressed={showArchived}
+              className={classNames(
+                'rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all',
+                showArchived
+                  ? 'bg-navy-900 text-emerald-400 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              Archivadas
+            </button>
+          </div>
+
           <div className="relative">
             <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
@@ -92,11 +127,17 @@ export function AsistenciasFichasPage() {
         {fichas?.length === 0 ? (
           <Card variant="ghost">
             <CardContent className="py-12 text-center">
-              <h3 className="mt-2 text-lg font-bold text-gray-900">No tienes fichas activas</h3>
-              <p className="mt-1 text-gray-500">Comienza creando tu primera ficha</p>
-              <Link to="/fichas/nueva" className="mt-4 inline-block">
-                <Button>Crear primera ficha</Button>
-              </Link>
+              <h3 className="mt-2 text-lg font-bold text-gray-900">
+                {showArchived ? 'No hay fichas archivadas' : 'No tienes fichas activas'}
+              </h3>
+              <p className="mt-1 text-gray-500">
+                {showArchived ? 'Las fichas que archives aparecerán aquí' : 'Comienza creando tu primera ficha'}
+              </p>
+              {!showArchived && (
+                <Link to="/fichas/nueva" className="mt-4 inline-block">
+                  <Button>Crear primera ficha</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         ) : filtradas.length === 0 ? (
@@ -106,11 +147,12 @@ export function AsistenciasFichasPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtradas.map((ficha) => (
               <FichaCard
                 key={ficha.id}
                 ficha={ficha}
+                isArchived={showArchived}
                 onClick={() => navigate(`/fichas/${ficha.id}/asistencias`)}
               />
             ))}

@@ -1,6 +1,4 @@
-import type { ReactNode } from 'react';
 import type { Ficha } from '../types';
-import { Card } from '@/shared/ui';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
 import { formatHora, getShortDayName, type FormatoHoraOption } from '@/shared/utils/helpers';
 
@@ -15,29 +13,9 @@ interface FichaCardProps {
   isArchived?: boolean;
 }
 
-const HEADER_ICON_BTN =
-  'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
-
-const LINE_ICON_BTN =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-white transition-colors hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-800 focus:ring-offset-2';
-
-function MetaTab({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <span className="flex items-center gap-2.5 pr-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-white">
-        {icon}
-      </span>
-      <span className="flex flex-col leading-tight">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</span>
-        <span className="text-sm font-semibold text-gray-800">{value}</span>
-      </span>
-    </span>
-  );
-}
-
 function ClockIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -50,7 +28,7 @@ function ClockIcon() {
 
 function CalendarIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -61,10 +39,36 @@ function CalendarIcon() {
   );
 }
 
+function UsersIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+      />
+    </svg>
+  );
+}
+
+function BookOpenIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+      />
+    </svg>
+  );
+}
+
 function ActionIcon({ d }: { d: string }) {
   return (
     <svg
-      className="h-[18px] w-[18px]"
+      className="h-4 w-4"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -87,7 +91,7 @@ function horarioResumen(ficha: Ficha, formato: FormatoHoraOption): string {
   const horarios = [...(ficha.horarios ?? [])].sort(
     (a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora)
   );
-  if (horarios.length === 0) return 'Sin horario';
+  if (horarios.length === 0) return 'Sin horario programado';
 
   const partes = horarios.map((h) => `${getShortDayName(h.diaSemana)} ${formatHora(h.hora, formato)}`);
   const max = 2;
@@ -118,44 +122,41 @@ export function FichaCard({
   const { formato } = useFormatoHora();
 
   return (
-    <Card variant="ghost" padding="none" className="card-fade hover:bg-white" onClick={onClick}>
-      <div className="p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="h-3 w-3 shrink-0 rounded-full bg-brand-green" aria-hidden="true" />
-              <h3 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl">{ficha.nombre}</h3>
-              <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600">
-                {ficha.codigo}
-              </span>
-              {isArchived && (
-                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                  Archivada
-                </span>
-              )}
-              {isFinalizada && (
-                <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                  Finalizada
-                </span>
-              )}
-            </div>
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className="group relative flex flex-col justify-between rounded-2xl bg-white/95 p-4 sm:p-4.5 shadow-xs hover:shadow-md hover:-translate-y-0.5 border border-slate-200/70 hover:border-slate-300 transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-navy-900/30"
+    >
+      <div>
+        {/* Top bar: Indicator + Nombre de la ficha + Código + Quick actions */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                isArchived
+                  ? 'bg-slate-400'
+                  : isFinalizada
+                  ? 'bg-emerald-600'
+                  : 'bg-emerald-500'
+              }`}
+              aria-hidden="true"
+            />
+            <h3 className="text-base font-bold text-slate-900 group-hover:text-navy-900 transition-colors truncate leading-snug">
+              {ficha.nombre}
+            </h3>
+            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
+              {ficha.codigo}
+            </span>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-            {onDelete && !ficha.finalizada && !isArchived && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className={`${HEADER_ICON_BTN} bg-red-600 text-white hover:bg-red-700 focus:ring-red-500`}
-                aria-label={`Eliminar ficha ${ficha.nombre}`}
-                title="Eliminar ficha"
-              >
-                <ActionIcon d={TRASH_PATH} />
-              </button>
-            )}
+          <div className="flex shrink-0 items-center gap-1">
             {onEdit && (
               <button
                 type="button"
@@ -163,71 +164,124 @@ export function FichaCard({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className={`${HEADER_ICON_BTN} border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500`}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
                 aria-label={`Editar ficha ${ficha.nombre}`}
                 title="Editar ficha"
               >
                 <ActionIcon d={PENCIL_PATH} />
               </button>
             )}
+            {onDelete && !ficha.finalizada && !isArchived && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[#a16074] hover:bg-[#a16074]/10 hover:text-[#8e5063] transition-colors focus:outline-none focus:ring-2 focus:ring-[#a16074]/30"
+                aria-label={`Eliminar ficha ${ficha.nombre}`}
+                title="Eliminar ficha"
+              >
+                <ActionIcon d={TRASH_PATH} />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="mt-5">
-          <div className="h-px w-full bg-gray-200" aria-hidden="true" />
-          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-            <div className="-mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 pt-3">
-              <MetaTab icon={<ClockIcon />} label="Horario" value={horarioResumen(ficha, formato)} />
-              <MetaTab icon={<CalendarIcon />} label="Trimestre" value={trimestreDe(ficha)} />
-            </div>
+        {/* Status badges only if archived or finalized */}
+        {(isArchived || isFinalizada) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {isArchived && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                Archivada
+              </span>
+            )}
+            {isFinalizada && (
+              <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 text-[11px] font-medium">
+                Finalizada
+              </span>
+            )}
+          </div>
+        )}
 
-            <div className="-mt-2 flex items-start gap-2 pt-3 pl-2">
-              {!isArchived && !isFinalizada && onFinalize && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onFinalize();
-                  }}
-                  className={LINE_ICON_BTN}
-                  aria-label="Finalizar ficha"
-                  title="Finalizar ficha"
-                >
-                  <ActionIcon d={FINALIZE_PATH} />
-                </button>
-              )}
-              {isFinalizada && !isArchived && onReopen && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReopen();
-                  }}
-                  className={LINE_ICON_BTN}
-                  aria-label="Reabrir ficha"
-                  title="Reabrir ficha"
-                >
-                  <ActionIcon d={REOPEN_PATH} />
-                </button>
-              )}
-              {onArchive && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive();
-                  }}
-                  className={LINE_ICON_BTN}
-                  aria-label={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
-                  title={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
-                >
-                  <ActionIcon d={isArchived ? UNARCHIVE_PATH : ARCHIVE_PATH} />
-                </button>
-              )}
-            </div>
+        {/* Metadata grid in compact mosaic items: Horario, N° estudiantes, Trimestre, Clases restantes */}
+        <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-600">
+          <div className="flex items-center gap-1.5 min-w-0" title={horarioResumen(ficha, formato)}>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <ClockIcon />
+            </span>
+            <span className="truncate font-medium">{horarioResumen(ficha, formato)}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.numeroEstudiantes ?? 0} estudiantes`}>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <UsersIcon />
+            </span>
+            <span className="truncate font-medium text-slate-700">
+              {ficha.numeroEstudiantes ?? 0} estudiantes
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0" title={trimestreDe(ficha)}>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <CalendarIcon />
+            </span>
+            <span className="truncate font-medium text-slate-700">{trimestreDe(ficha)}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.clasesRestantes ?? ficha.totalClases} clases restantes`}>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+              <BookOpenIcon />
+            </span>
+            <span className="truncate font-medium text-slate-700">
+              {ficha.clasesRestantes ?? ficha.totalClases} clases rest.
+            </span>
           </div>
         </div>
       </div>
-    </Card>
+
+      {/* Footer bar with actions */}
+      <div className="mt-4 pt-3 border-t border-slate-100/90 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
+          Ver detalles →
+        </span>
+
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {!isArchived && !isFinalizada && onFinalize && (
+            <button
+              type="button"
+              onClick={onFinalize}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
+              aria-label="Finalizar ficha"
+              title="Finalizar ficha"
+            >
+              <ActionIcon d={FINALIZE_PATH} />
+            </button>
+          )}
+          {isFinalizada && !isArchived && onReopen && (
+            <button
+              type="button"
+              onClick={onReopen}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
+              aria-label="Reabrir ficha"
+              title="Reabrir ficha"
+            >
+              <ActionIcon d={REOPEN_PATH} />
+            </button>
+          )}
+          {onArchive && (
+            <button
+              type="button"
+              onClick={onArchive}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+              aria-label={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
+              title={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
+            >
+              <ActionIcon d={isArchived ? UNARCHIVE_PATH : ARCHIVE_PATH} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

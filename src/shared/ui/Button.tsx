@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { classNames } from '../utils/helpers';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'navy' | 'navyGreen' | 'success';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'navy' | 'navyGreen' | 'success' | 'light' | 'lightGreen';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   fullWidth?: boolean;
@@ -10,17 +10,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, fullWidth, disabled, children, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.99]';
     
     const variantStyles = {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-      secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500',
-      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-      ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
-      outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-      navy: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900',
-      navyGreen: 'bg-navy-900 text-green-400 hover:bg-navy-800 focus:ring-navy-900',
-      success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-600',
+      primary: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
+      secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200/90 focus:ring-slate-400 border border-slate-200/60 shadow-xs',
+      danger: 'bg-[#a16074] text-white hover:bg-[#8e5063] focus:ring-[#a16074]/50 font-medium shadow-xs',
+      ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-300',
+      outline: 'border border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-400 shadow-xs',
+      navy: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
+      navyGreen: 'bg-navy-900 text-emerald-400 font-semibold hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
+      success: 'bg-emerald-700 text-white hover:bg-emerald-800 focus:ring-emerald-600 font-medium shadow-xs',
+      light: 'bg-white text-navy-900 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 focus:ring-navy-900/20 font-semibold shadow-xs',
+      lightGreen: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100/90 border border-emerald-200/80 focus:ring-emerald-500/30 font-semibold shadow-xs',
     };
     
     const sizeStyles = {

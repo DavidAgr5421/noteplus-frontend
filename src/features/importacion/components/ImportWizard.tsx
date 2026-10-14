@@ -153,19 +153,19 @@ export function ImportWizard({ isOpen, onClose, onConfirm, isLoading, serverResu
             )}.
           </p>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-200">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200/60 bg-white">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-50">
+                <tr className="bg-slate-50">
                   {sheet.headers.map((h, i) => {
                     const m = mapping[i];
                     return (
-                      <th key={i} className="min-w-40 border-b border-gray-200 px-3 py-2 text-left align-top">
-                        <div className="truncate text-xs font-medium text-gray-500" title={h}>{h}</div>
+                      <th key={i} className="min-w-40 border-b border-slate-200/60 px-3 py-2 text-left align-top">
+                        <div className="truncate text-xs font-medium text-slate-500" title={h}>{h}</div>
                         <select
                           value={m?.target ?? 'ignorar'}
                           onChange={(e) => setTarget(i, e.target.value as CanonicalTarget)}
-                          className="mt-1 w-full rounded-full border border-gray-300 bg-white px-2 py-1 text-xs font-semibold"
+                          className="mt-1 w-full rounded-full border border-slate-200/80 bg-white px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-navy-900/30"
                           aria-label={`Campo para columna ${h}`}
                         >
                           {TARGET_OPTIONS.map((o) => (
@@ -177,7 +177,7 @@ export function ImportWizard({ isOpen, onClose, onConfirm, isLoading, serverResu
                             {m?.reason === 'Asignado manualmente' ? 'manual' : `${Math.round((m?.confidence ?? 0) * 100)}%`}
                           </span>
                           {m?.needsSplit && (
-                            <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">
+                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">
                               dividido
                             </span>
                           )}
@@ -189,10 +189,10 @@ export function ImportWizard({ isOpen, onClose, onConfirm, isLoading, serverResu
               </thead>
               <tbody>
                 {sheet.rows.slice(0, 6).map((row, ri) => (
-                  <tr key={ri} className={invalidRows.has(ri + 1) ? 'bg-red-50' : undefined}>
+                  <tr key={ri} className={invalidRows.has(ri + 1) ? 'bg-rose-50/70' : undefined}>
                     {row.map((c, ci) => (
-                      <td key={ci} className="max-w-48 truncate border-b border-gray-100 px-3 py-1.5 text-xs text-gray-700" title={c}>
-                        {c || <span className="text-gray-300">—</span>}
+                      <td key={ci} className="max-w-48 truncate border-b border-slate-100 px-3 py-1.5 text-xs text-slate-700" title={c}>
+                        {c || <span className="text-slate-300">—</span>}
                       </td>
                     ))}
                   </tr>
@@ -201,18 +201,18 @@ export function ImportWizard({ isOpen, onClose, onConfirm, isLoading, serverResu
             </table>
           </div>
           {sheet.rows.length > 6 && (
-            <p className="text-xs text-gray-400">Mostrando 6 de {sheet.rows.length} filas.</p>
+            <p className="text-xs text-slate-400">Mostrando 6 de {sheet.rows.length} filas.</p>
           )}
 
           {issues.length > 0 && (
-            <div className="max-h-32 overflow-y-auto rounded-2xl bg-amber-50 p-3 text-xs text-amber-800">
+            <div className="max-h-32 overflow-y-auto rounded-2xl bg-amber-50/80 border border-amber-200/50 p-3 text-xs text-amber-800">
               {issues.slice(0, 20).map((iss, i) => <p key={i}>{iss.message}</p>)}
               {issues.length > 20 && <p>…y {issues.length - 20} avisos más.</p>}
             </div>
           )}
 
           {serverError && (
-            <div className="rounded-2xl bg-red-50 p-3 text-xs text-red-700">
+            <div className="rounded-2xl bg-rose-50 border border-rose-200/60 p-3 text-xs text-rose-700">
               <p className="font-semibold">No se pudo importar: {serverError}</p>
               <p className="mt-1">Si el error persiste, verifica que el backend tenga la migración al día (`alembic upgrade head`).</p>
             </div>

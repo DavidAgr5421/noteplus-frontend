@@ -152,7 +152,7 @@ export function ActividadesPage() {
         aria-label={`Eliminar ${actividad.nombre}`}
         title="Eliminar"
         onClick={() => setDeletingActividad(actividad)}
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600"
+        className="flex h-6 w-6 items-center justify-center rounded-full bg-[#a16074] text-white hover:bg-[#8e5063] focus:outline-none focus:ring-2 focus:ring-[#a16074]/50 shadow-xs"
       >
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -472,7 +472,7 @@ export function ActividadesPage() {
                 <col style={{ width: colWidths.porcentaje }} />
               </colgroup>
               <thead>
-                <tr className="rounded-xl bg-[#3b6336] text-sm font-semibold text-white">
+                <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
                   <th className="relative rounded-l-xl px-4 py-3 text-left">Nombre<ResizeHandle onMouseDown={startResize('nombre')} onDoubleClick={() => resetColWidth('nombre')} /></th>
                   <th className="relative px-2 py-3 text-center">Fecha límite<ResizeHandle onMouseDown={startResize('fecha')} onDoubleClick={() => resetColWidth('fecha')} /></th>
                   <th className="relative px-2 py-3 text-center">Acción<ResizeHandle onMouseDown={startResize('accion')} onDoubleClick={() => resetColWidth('accion')} /></th>
