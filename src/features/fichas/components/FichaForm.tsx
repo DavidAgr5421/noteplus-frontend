@@ -2,8 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, CardFooter } from '@/shared/ui';
-import { fichaSchema, type FichaFormData, type FichaHorario } from '../types';
+import { fichaSchema, type Ficha, type FichaFormData, type FichaHorario } from '../types';
 import { getDayName, getShortDayName } from '@/shared/utils/helpers';
+import {
+  ScheduleConflictAlert,
+  findScheduleConflicts,
+  type ScheduleConflictData,
+} from './ScheduleConflictAlert';
 
 /** Barra de título de sección: gradiente azul oscuro → transparente de izq. a derecha. */
 function SectionTitle({ children }: { children: ReactNode }) {
@@ -29,6 +34,10 @@ type FormData = FichaFormData;
 
 interface FichaFormProps {
   initialData?: Partial<FichaFormData> & { horarios?: FichaHorario[] };
+  activeFichas?: Ficha[];
+  currentFichaId?: string;
+  externalConflict?: ScheduleConflictData | null;
+  onClearExternalConflict?: () => void;
   onSubmit: (data: FormData & { horarios: FichaHorario[] }) => void;
   onCancel?: () => void;
   isLoading?: boolean;
@@ -100,7 +109,17 @@ function ClockFace({ time, label }: { time: string; label: string }) {
   );
 }
 
-export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLabel = 'Guardar' }: FichaFormProps) {
+export function FichaForm({
+  initialData,
+  activeFichas = [],
+  currentFichaId,
+  externalConflict,
+  onClearExternalConflict,
+  onSubmit,
+  onCancel,
+  isLoading,
+  submitLabel = 'Guardar',
+}: FichaFormProps) {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -129,6 +148,15 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
   const [horaFin, setHoraFin] = useState('20:00');
   const [horarios, setHorarios] = useState<FichaHorario[]>(initialData?.horarios ?? []);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [localConflict, setLocalConflict] = useState<ScheduleConflictData | null>(null);
+
+  const accion: 'crear' | 'modificar' = currentFichaId ? 'modificar' : 'crear';
+  const activeConflict = externalConflict ?? localConflict;
+
+  const clearConflict = () => {
+    setLocalConflict(null);
+    onClearExternalConflict?.();
+  };
 
   const totalClases = watch('totalClases') ?? 0;
 
@@ -142,6 +170,7 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
 
   const addHorario = () => {
     setScheduleError(null);
+    clearConflict();
     if (selectedDays.length === 0) {
       setScheduleError('Marca al menos un día de la semana.');
       return;
@@ -154,27 +183,25 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
       setScheduleError('La hora de fin debe ser posterior a la de inicio.');
       return;
     }
-    const duplicates = selectedDays.filter((dia) =>
-      horarios.some((h) => h.diaSemana === dia && h.hora === horaInicio)
-    );
-    if (duplicates.length > 0) {
-      setScheduleError(
-        `Ya existe un horario a las ${horaInicio} para: ${duplicates.map(getDayName).join(', ')}.`
-      );
-      return;
-    }
     const nuevos: FichaHorario[] = selectedDays.map((diaSemana) => ({
       diaSemana,
       hora: horaInicio,
       duracionMinutos: duracion,
     }));
-    setHorarios((prev) =>
-      [...prev, ...nuevos].sort((a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora))
+    const candidatos = [...horarios, ...nuevos].sort(
+      (a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora),
     );
+    const conflict = findScheduleConflicts(candidatos, activeFichas, currentFichaId, accion);
+    if (conflict) {
+      setLocalConflict(conflict);
+      return;
+    }
+    setHorarios(candidatos);
     setSelectedDays([]);
   };
 
   const removeHorario = (diaSemana: number, hora: string) => {
+    clearConflict();
     setHorarios((prev) => prev.filter((h) => !(h.diaSemana === diaSemana && h.hora === hora)));
   };
 
@@ -188,12 +215,18 @@ export function FichaForm({ initialData, onSubmit, onCancel, isLoading, submitLa
       setScheduleError('Agrega al menos un horario de clase.');
       return;
     }
+    const conflict = findScheduleConflicts(horarios, activeFichas, currentFichaId, accion);
+    if (conflict) {
+      setLocalConflict(conflict);
+      return;
+    }
     const trimestreFinal = data.trimestre?.trim() || trimestreDe(data.fechaInicio);
     onSubmit({ ...data, trimestre: trimestreFinal, horarios });
   };
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-8">
+      <ScheduleConflictAlert conflict={activeConflict} onClose={clearConflict} />
       {/* Datos de la ficha */}
       <div>
         <SectionTitle>Datos de la ficha</SectionTitle>

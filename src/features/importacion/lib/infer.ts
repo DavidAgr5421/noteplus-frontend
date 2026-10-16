@@ -1,31 +1,93 @@
 import type { CanonicalTarget, MappingSuggestion } from './types';
 import { aliasLookup } from './aliases';
 import { levenshtein, normalizeHeader } from './normalize';
-import { extractDoc, extractEmail } from './splitDoc';
+import { extractDoc, extractEmail, extractPlainDocNumber, normalizeTipo } from './splitDoc';
 
 const EMAIL_LIKE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-const ONLY_DIGITS = /^\d{5,12}$/;
-const TIPO_LIKE = /^(CC|TI|CE|PA|PEP|PPT|RC)$/i;
 const PHONE_LIKE = /^[+()\-\s\d]{7,20}$/;
+const NAME_LIKE = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,}(?:\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,}){1,5}$/;
+
+/** Frases comunes de formularios que no son nombres de personas. */
+const FORM_PHRASES = new Set([
+  'esta de acuerdo',
+  'estoy de acuerdo',
+  'no esta de acuerdo',
+  'acepta',
+  'acepto',
+  'si acepta',
+  'autoriza',
+  'autorizo',
+]);
+
+function isLikelyPersonName(cell: string): boolean {
+  const trimmed = cell.trim().replace(/\s+/g, ' ');
+  if (!NAME_LIKE.test(trimmed)) return false;
+  if (extractDoc(trimmed) !== null) return false;
+  const norm = trimmed
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (FORM_PHRASES.has(norm)) return false;
+  return true;
+}
 
 /** Pistas por contenido de la columna (primeras N celdas no vacías). */
-function contentHint(cells: string[]): { target: CanonicalTarget; boost: number } | null {
-  const sample = cells.filter((c) => c.trim() !== '').slice(0, 8);
-  if (sample.length === 0) return null;
-  const hits = (re: RegExp) => sample.filter((c) => re.test(c.trim())).length / sample.length;
-  if (hits(EMAIL_LIKE) >= 0.5) return { target: 'email', boost: 0.2 };
-  if (hits(TIPO_LIKE) >= 0.5) return { target: 'tipoIdentificacion', boost: 0.2 };
-  if (hits(ONLY_DIGITS) >= 0.6) return { target: 'identificacion', boost: 0.2 };
-  const combined = sample.filter((c) => extractDoc(c) !== null).length / sample.length;
-  if (combined >= 0.4) return { target: 'identificacion', boost: 0.15 };
-  if (hits(PHONE_LIKE) >= 0.5 && hits(ONLY_DIGITS) < 0.6) return { target: 'contacto', boost: 0.15 };
-  if (sample.some((c) => extractEmail(c) !== null)) return { target: 'email', boost: 0.1 };
-  return null;
+function contentHints(cells: string[]): { target: CanonicalTarget; boost: number }[] {
+  const sample = cells.map((c) => c.trim()).filter((c) => c !== '').slice(0, 12);
+  if (sample.length === 0) return [];
+
+  const hints: { target: CanonicalTarget; boost: number }[] = [];
+  const hits = (fn: (c: string) => boolean) => sample.filter(fn).length / sample.length;
+
+  // 1. Email
+  if (hits((c) => EMAIL_LIKE.test(c)) >= 0.4) {
+    hints.push({ target: 'email', boost: 0.35 });
+  } else if (sample.some((c) => extractEmail(c) !== null)) {
+    hints.push({ target: 'email', boost: 0.15 });
+  }
+
+  // 2. Solo tipo de documento ("CC", "T.I.", "TI", etc.)
+  if (hits((c) => normalizeTipo(c) !== null && !/\d/.test(c)) >= 0.5) {
+    hints.push({ target: 'tipoIdentificacion', boost: 0.3 });
+  }
+
+  // 3. Documento (combinado tipo+número como "T.I 1011513696" o solo dígitos como "1007436463")
+  const combinedDocRatio = hits((c) => extractDoc(c) !== null);
+  const plainDocRatio = hits((c) => extractPlainDocNumber(c) !== null);
+  if (combinedDocRatio + plainDocRatio >= 0.5) {
+    // Mayor boost cuando incluye prefijos explícitos (CC, T.I, etc.)
+    hints.push({
+      target: 'identificacion',
+      boost: combinedDocRatio >= 0.2 ? 0.4 : 0.25,
+    });
+  }
+
+  // 4. Nombres completos (2 a 6 palabras alfabéticas, con variedad entre filas)
+  const nameRatio = hits(isLikelyPersonName);
+  const uniqueLower = new Set(sample.map((c) => c.toLowerCase()));
+  const hasVariety = sample.length === 1 || uniqueLower.size >= Math.max(2, Math.ceil(sample.length * 0.5));
+  if (nameRatio >= 0.6 && hasVariety) {
+    hints.push({ target: 'nombre', boost: 0.3 });
+  }
+
+  // 5. Contacto / Teléfono
+  if (hits((c) => PHONE_LIKE.test(c)) >= 0.5) {
+    hints.push({ target: 'contacto', boost: 0.2 });
+  }
+
+  // 6. Celda combinada tipo SofiaPlus ("JUAN PEREZ CC 12345678")
+  const sofiaRatio = hits((c) => extractDoc(c) !== null && /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}/.test(c));
+  if (sofiaRatio >= 0.4) {
+    hints.push({ target: 'nombre', boost: 0.3 });
+  }
+
+  return hints;
 }
 
 function fuzzyScore(header: string): { target: CanonicalTarget; score: number } | null {
   const norm = normalizeHeader(header);
-  if (!norm) return null;
+  // Ignorar encabezados autogenerados como "Columna 1", "Columna 2"
+  if (!norm || /^columna\s*\d+$/i.test(norm)) return null;
   const candidates: { target: CanonicalTarget; key: string }[] = [
     { target: 'nombre', key: 'nombre' },
     { target: 'identificacion', key: 'identificacion' },
@@ -36,6 +98,7 @@ function fuzzyScore(header: string): { target: CanonicalTarget; score: number } 
     { target: 'email', key: 'email' },
     { target: 'contacto', key: 'contacto' },
     { target: 'contacto', key: 'telefono' },
+    { target: 'contacto', key: 'celular' },
   ];
   let best: { target: CanonicalTarget; score: number } | null = null;
   for (const c of candidates) {
@@ -60,11 +123,19 @@ function fuzzyScore(header: string): { target: CanonicalTarget; score: number } 
  */
 export function inferMapping(headers: string[], rows: string[][]): MappingSuggestion[] {
   const used = new Set<CanonicalTarget>();
+
+  // Verificar si alguna columna tiene documentos explícitos con prefijo (CC, T.I, etc.)
+  const colHasExplicitDoc = headers.map((_, i) =>
+    rows.some((r) => extractDoc(r[i] ?? '') !== null),
+  );
+  const anyExplicitDocCol = colHasExplicitDoc.some(Boolean);
+
   return headers.map((h, i) => {
     const colCells = rows.map((r) => r[i] ?? '');
-    const combined = colCells.some((c) => extractDoc(c) !== null && /[A-Za-zÀ-ÿ]/.test(c));
-    const alias = aliasLookup(h);
-    const hint = contentHint(colCells);
+    const combined = colCells.some((c) => extractDoc(c) !== null);
+    const isAutoHeader = /^Columna\s+\d+$/i.test(h.trim());
+    const alias = isAutoHeader ? null : aliasLookup(h);
+    const hints = contentHints(colCells);
     let target: CanonicalTarget = 'ignorar';
     let confidence = 0.2;
     let reason = 'Sin coincidencia; revísalo';
@@ -79,16 +150,28 @@ export function inferMapping(headers: string[], rows: string[][]): MappingSugges
         target = fuzzy.target;
         confidence = fuzzy.score;
         reason = `Encabezado similar a ${fuzzy.target}`;
-      } else if (hint && (hint.target === 'nombre' || !used.has(hint.target))) {
-        target = hint.target;
-        confidence = 0.5 + hint.boost;
-        reason = 'Detectado por el contenido de la columna';
+      } else {
+        // Buscar la primera pista de contenido disponible que no esté ya usada
+        const availableHint = hints.find((hint) => {
+          if (hint.target === 'identificacion' && anyExplicitDocCol && !colHasExplicitDoc[i] && hints.some((x) => x.target === 'contacto')) {
+            // Si otra columna ya trae documentos explícitos (T.I / CC) y esta parece teléfono, priorizar contacto
+            return false;
+          }
+          return hint.target === 'nombre' ? !used.has('nombre') || !isAutoHeader : !used.has(hint.target);
+        });
+        if (availableHint) {
+          target = availableHint.target;
+          confidence = Math.min(0.95, 0.55 + availableHint.boost);
+          reason = 'Detectado por el contenido de la columna';
+        }
       }
     }
-    if (hint && hint.target === target && confidence < 0.95) {
-      confidence = Math.min(0.95, confidence + hint.boost);
+
+    const matchingHint = hints.find((x) => x.target === target);
+    if (matchingHint && confidence < 0.95 && reason !== 'Detectado por el contenido de la columna') {
+      confidence = Math.min(0.95, confidence + matchingHint.boost);
     }
-    if (target !== 'ignorar' && target !== 'nombre') used.add(target);
+    if (target !== 'ignorar') used.add(target);
     return { sourceIndex: i, sourceHeader: h, target, confidence, reason, needsSplit: combined };
   });
 }

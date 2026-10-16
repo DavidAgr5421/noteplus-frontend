@@ -87,6 +87,57 @@ describe('parse + records', () => {
     expect(records[0].nombre).toBe('Juan Perez');
     expect(records[0].identificacion).toBe('123456');
   });
+  it('reconoce T.I, C.C, Ti., Cc: con puntos y dos puntos', () => {
+    expect(extractDoc('T.I 1011513696')).toEqual({ tipo: 'TI', numero: '1011513696' });
+    expect(extractDoc('C.C 1035419262')).toEqual({ tipo: 'CC', numero: '1035419262' });
+    expect(extractDoc('Ti.1049322140')).toEqual({ tipo: 'TI', numero: '1049322140' });
+    expect(extractDoc('Cc: 1020108013')).toEqual({ tipo: 'CC', numero: '1020108013' });
+    expect(extractDoc('Cc 1037264913')).toEqual({ tipo: 'CC', numero: '1037264913' });
+  });
+  it('procesa pegado de Google Forms sin encabezados con T.I, C.C, Ti. y números planos', () => {
+    const raw = [
+      '15/10/2026 6:58:15\tACEPTA\tLaura Vanesa Salazar \t1007436463\tlauravanessasalazar281@gmail.com\t3127337234\t3206442655\tEstá de acuerdo',
+      '15/10/2026 6:59:24\tACEPTA\tMiguel Angel Murillo Castro\tT.I 1011513696\tmikellangell.17@gmail.com\t3023268334\t3154073110\tEstá de acuerdo',
+      '15/10/2026 7:01:00\tACEPTA\tSebastian Gómez Jaramillo \tC.C 1035419262\tsebastiangomezj14@gmail.com\t3014036092\t3208315223\tEstá de acuerdo',
+      '15/10/2026 7:01:03\tACEPTA\tChristian David Ruiz Medina\tCC 1025761785\tChristian David Ruiz Medina \t3003039967\t+1 (843) 338-0153\tEstá de acuerdo',
+      '15/10/2026 7:05:39\tACEPTA\tJesús Elias Acosta rocha \tTi.1049322140\tacostarochajesuselias@gmail.com\t3116382359\t3017448885\tEstá de acuerdo',
+    ].join('\n');
+
+    const sheet = parseTextToSheet(raw);
+    const mapping = inferMapping(sheet.headers, sheet.rows);
+    const records = sheetToRecords(sheet, mapping);
+
+    expect(records).toHaveLength(5);
+    expect(records[0]).toMatchObject({
+      nombre: 'Laura Vanesa Salazar',
+      tipoIdentificacion: 'CC',
+      identificacion: '1007436463',
+      email: 'lauravanessasalazar281@gmail.com',
+      contacto: '3127337234',
+    });
+    expect(records[1]).toMatchObject({
+      nombre: 'Miguel Angel Murillo Castro',
+      tipoIdentificacion: 'TI',
+      identificacion: '1011513696',
+    });
+    expect(records[2]).toMatchObject({
+      nombre: 'Sebastian Gómez Jaramillo',
+      tipoIdentificacion: 'CC',
+      identificacion: '1035419262',
+    });
+    expect(records[3]).toMatchObject({
+      nombre: 'Christian David Ruiz Medina',
+      tipoIdentificacion: 'CC',
+      identificacion: '1025761785',
+      email: '',
+    });
+    expect(records[4]).toMatchObject({
+      nombre: 'Jesús Elias Acosta rocha',
+      tipoIdentificacion: 'TI',
+      identificacion: '1049322140',
+    });
+    expect(validateRecords(records)).toEqual([]);
+  });
   it('validación marca faltantes y duplicados', () => {
     const issues = validateRecords([
       { nombre: '', tipoIdentificacion: 'CC', identificacion: '', email: '', contacto: '' },
@@ -96,3 +147,4 @@ describe('parse + records', () => {
     expect(issues.length).toBeGreaterThanOrEqual(3);
   });
 });
+

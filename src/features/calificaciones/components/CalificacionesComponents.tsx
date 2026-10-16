@@ -307,9 +307,9 @@ export function NotasTable({ data, finalizada, onNotaChange }: NotasTableProps) 
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-navy-900 text-white">
+      <div className="overflow-x-auto rounded-xl dark:bg-black">
+        <table className="w-full border-collapse text-sm dark:bg-black">
+          <thead className="bg-navy-900 dark:bg-[#071626] text-white">
             <tr>
               <th rowSpan={2} scope="col" className={`rounded-tl-xl text-left ${thTop}`}>Estudiante</th>
               {groups.map(g => g.parent ? (
@@ -333,16 +333,16 @@ export function NotasTable({ data, finalizada, onNotaChange }: NotasTableProps) 
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+          <tbody className="divide-y divide-gray-100 dark:divide-white/10 dark:bg-black">
             {data.estudiantes.length === 0 ? (
-              <tr>
+              <tr className="dark:bg-black">
                 <td colSpan={totalCols} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                   No hay estudiantes en esta ficha
                 </td>
               </tr>
             ) : (
               data.estudiantes.map(row => (
-                <tr key={row.estudianteId} className="hover:bg-gray-50 dark:hover:bg-white/5">
+                <tr key={row.estudianteId} className="dark:bg-black hover:bg-gray-50 dark:hover:bg-white/[0.04]">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900 dark:text-white">{row.estudianteNombre}</p>
                     <p className="text-sm text-gray-500 dark:text-slate-400">{row.estudianteIdentificacion}</p>
@@ -369,7 +369,9 @@ export function NotasTable({ data, finalizada, onNotaChange }: NotasTableProps) 
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      liveByStudent[row.estudianteId].estado === 'APROBADO' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      liveByStudent[row.estudianteId].estado === 'APROBADO'
+                        ? 'bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                        : 'bg-[#a16074]/15 text-[#8e5063] dark:bg-[#a16074]/25 dark:text-[#e2a8b8]'
                     }`}>
                       {liveByStudent[row.estudianteId].estado}
                     </span>

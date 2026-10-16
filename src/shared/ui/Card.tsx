@@ -9,9 +9,9 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
     const variantStyles = {
-      default: 'rounded-2xl bg-white/95 shadow-sm border border-slate-100/80 dark:bg-slate-900/95 dark:border-white/10',
-      outlined: 'rounded-2xl bg-white border border-slate-200/60 shadow-xs dark:bg-slate-900 dark:border-white/10',
-      elevated: 'rounded-2xl bg-white shadow-md shadow-slate-900/5 border border-slate-100/60 dark:bg-slate-900 dark:border-white/10 dark:shadow-black/30',
+      default: 'rounded-2xl bg-white/95 shadow-sm border border-slate-100/80 dark:bg-[#222b42] dark:border-white/10',
+      outlined: 'rounded-2xl bg-white border border-slate-200/60 shadow-xs dark:bg-[#222b42] dark:border-white/10',
+      elevated: 'rounded-2xl bg-white shadow-md shadow-slate-900/5 border border-slate-100/60 dark:bg-[#222b42] dark:border-white/10 dark:shadow-black/30',
       ghost: 'rounded-2xl bg-transparent',
     };
     

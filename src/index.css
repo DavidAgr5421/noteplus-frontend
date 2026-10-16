@@ -31,9 +31,34 @@
     letter-spacing: -0.011em;
     text-wrap: pretty;
   }
+  .dark {
+    --color-slate-900: #222b42;
+  }
   .dark body {
-    background-color: #020617;
+    background-color: #0f172a;
     color: #e2e8f0;
+  }
+  .dark button.bg-navy-900,
+  .dark a.bg-navy-900,
+  .dark button.dark\:bg-slate-900,
+  .dark a.dark\:bg-slate-900 {
+    background-color: #000000;
+  }
+  .dark button.bg-navy-900:hover,
+  .dark a.bg-navy-900:hover,
+  .dark button.dark\:bg-slate-900:hover,
+  .dark a.dark\:bg-slate-900:hover {
+    background-color: #171717;
+  }
+  .dark table,
+  .dark tbody {
+    background-color: #000000;
+  }
+  .dark tbody tr {
+    background-color: #000000;
+  }
+  .dark tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04);
   }
   h1,
   h2,
@@ -116,7 +141,7 @@
     background-image: radial-gradient(circle at center, rgb(255 255 255 / 0) 0%, #ffffff 75%);
   }
   .dark .card-fade {
-    background-image: radial-gradient(circle at center, rgb(2 6 23 / 0) 0%, #020617 75%);
+    background-image: radial-gradient(circle at center, rgb(34 43 66 / 0) 0%, #222b42 75%);
   }
   /* Inputs de notas: sin flechas de spinner nativas. */
   .nota-input {
@@ -133,18 +158,22 @@
     background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
   }
   .dark .panel-fade {
-    background: linear-gradient(to right, rgba(2, 6, 23, 0.92), rgba(2, 6, 23, 0));
+    background: linear-gradient(to right, rgba(34, 43, 66, 0.95), rgba(34, 43, 66, 0));
   }
   /* Fondo de página con leve degradado en ambos modos. */
   .page-bg {
     background-image: linear-gradient(160deg, #e4e8ee 0%, #ebedf2 45%, #f4f6f9 100%);
   }
   .dark .page-bg {
-    background-image: linear-gradient(160deg, #020617 0%, #0a1628 60%, #0d1b30 100%);
+    background-color: #0f172a;
+    background-image: linear-gradient(160deg, #0b1120 0%, #0f172a 50%, #131c31 100%);
   }
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: theme(colors.gray.300) transparent;
+  }
+  .dark .scrollbar-thin {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
@@ -157,6 +186,9 @@
     background-color: theme(colors.gray.300);
     border-radius: 3px;
   }
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
   .slider-verde-navy {
     -webkit-appearance: none;
     appearance: none;
@@ -165,6 +197,9 @@
     background: linear-gradient(to right, theme(colors.green.600) var(--slider-pct, 0%), #e5e7eb var(--slider-pct, 0%));
     outline: none;
     cursor: pointer;
+  }
+  .dark .slider-verde-navy {
+    background: linear-gradient(to right, theme(colors.emerald.500) var(--slider-pct, 0%), rgba(255, 255, 255, 0.15) var(--slider-pct, 0%));
   }
   .slider-verde-navy::-webkit-slider-thumb {
     -webkit-appearance: none;

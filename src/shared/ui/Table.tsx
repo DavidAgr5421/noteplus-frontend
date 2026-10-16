@@ -37,10 +37,10 @@ export function Table<T>({
   ...props
 }: TableProps<T>) {
   return (
-    <div className="overflow-x-auto">
-      <table className={classNames('w-full text-sm', className)} {...props}>
+    <div className="overflow-x-auto dark:bg-black rounded-2xl">
+      <table className={classNames('w-full text-sm dark:bg-black', className)} {...props}>
         <thead>
-          <tr className="bg-navy-900 text-white text-xs uppercase tracking-wider font-semibold">
+          <tr className="bg-navy-900 dark:bg-[#071626] text-white text-xs uppercase tracking-wider font-semibold">
             {columns.map((column, idx) => (
               <th
                 key={column.key}
@@ -58,9 +58,9 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-white/10">
+        <tbody className="divide-y divide-gray-100 dark:divide-white/10 dark:bg-black">
           {loading ? (
-            <tr>
+            <tr className="dark:bg-black">
               <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 <div className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5 text-blue-600" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@ export function Table<T>({
               </td>
             </tr>
           ) : data.length === 0 ? (
-            <tr>
+            <tr className="dark:bg-black">
               <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                 {emptyMessage}
               </td>
@@ -82,8 +82,9 @@ export function Table<T>({
               <tr
                 key={keyExtractor(row)}
                 className={classNames(
-                  striped && rowIndex % 2 === 1 && 'bg-gray-50 dark:bg-white/5',
-                  hoverable && 'hover:bg-gray-50 dark:hover:bg-white/5',
+                  'dark:bg-black',
+                  striped && rowIndex % 2 === 1 && 'bg-gray-50 dark:bg-white/[0.02]',
+                  hoverable && 'hover:bg-gray-50 dark:hover:bg-white/[0.05]',
                   onRowClick && 'cursor-pointer'
                 )}
                 onClick={() => onRowClick?.(row)}

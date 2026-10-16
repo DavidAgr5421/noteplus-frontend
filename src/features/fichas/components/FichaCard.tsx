@@ -148,7 +148,7 @@ export function FichaCard({
               }`}
               aria-hidden="true"
             />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-navy-900 transition-colors truncate leading-snug">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-navy-900 dark:group-hover:text-emerald-400 transition-colors truncate leading-snug">
               {ficha.nombre}
             </h3>
             <span className="shrink-0 rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
@@ -197,7 +197,7 @@ export function FichaCard({
               </span>
             )}
             {isFinalizada && (
-              <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 text-[11px] font-medium">
+              <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-400/20 px-2 py-0.5 text-[11px] font-medium">
                 Finalizada
               </span>
             )}
@@ -273,7 +273,7 @@ export function FichaCard({
             <button
               type="button"
               onClick={onArchive}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
               aria-label={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
               title={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
             >

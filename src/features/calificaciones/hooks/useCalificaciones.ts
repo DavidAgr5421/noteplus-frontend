@@ -103,3 +103,16 @@ export function useUpdateNotaMinima() {
     },
   });
 }
+
+export function useCopiarActividades(fichaId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { origenFichaId: string; reemplazarExistentes?: boolean }) =>
+      calificacionesApi.copiarActividades(fichaId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['actividades', fichaId] });
+      queryClient.invalidateQueries({ queryKey: ['calificaciones', fichaId] });
+    },
+  });
+}

@@ -1,25 +1,26 @@
 import type { CanonicalTarget, EstudianteImportado, MappingSuggestion } from './types';
-import { extractDoc, extractEmail, splitSofiaPlusCell } from './splitDoc';
+import { extractDoc, extractEmail, extractPlainDocNumber, normalizeTipo, splitSofiaPlusCell } from './splitDoc';
+
 export interface ParsedSheet {
   headers: string[];
   rows: string[][];
   hasHeader: boolean;
 }
 
-const BOM = '﻿';
+const BOM = '\uFEFF';
 
 function cleanCell(v: unknown): string {
   if (v === null || v === undefined) return '';
   return String(v).replace(BOM, '').trim();
 }
 
-/** ¿La primera fila parece encabezado o dato? (dato: trae doc/email/solo dígitos). */
+/** ¿La primera fila parece encabezado o dato? (dato: trae doc/email/cédula numérica). */
 function looksLikeDataRow(cells: string[]): boolean {
   const joined = cells.join(' ');
-  if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(joined)) return true;
-  if (/\b(CC|TI|CE|PA|PEP|PPT|RC)\b\s*\d{5,12}/i.test(joined)) return true;
-  const nonEmpty = cells.filter((c) => c !== '');
-  if (nonEmpty.length > 0 && nonEmpty.every((c) => /^\d{5,12}$/.test(c))) return true;
+  if (extractEmail(joined) !== null) return true;
+  if (extractDoc(joined) !== null) return true;
+  const nonEmpty = cells.filter((c) => c.trim() !== '');
+  if (nonEmpty.length > 0 && nonEmpty.some((c) => /^\d{6,12}$/.test(c.trim()))) return true;
   return false;
 }
 
@@ -101,7 +102,7 @@ export async function parseFileToSheet(file: File): Promise<ParsedSheet> {
 /**
  * Aplica el mapeo (ya confirmado por el usuario) a las filas.
  * - Dos columnas -> nombre se concatenan ("Juan" + "Pérez").
- * - Celdas combinadas ("CC 123", "NOMBRE CC 123") se dividen.
+ * - Celdas combinadas ("CC 123", "T.I 1011513696", "C.C 1035419262", "Ti.1049322140") se dividen.
  * - Si falta columna email, se busca un email en cualquier celda.
  */
 export function sheetToRecords(
@@ -135,9 +136,9 @@ export function sheetToRecords(
     let tipo = '';
     let numero = '';
     for (const c of cell(byTarget.get('tipoIdentificacion'))) {
-      const t = c.trim().toUpperCase();
-      if (/^(CC|TI|CE|PA|PEP|PPT|RC)$/i.test(t)) {
-        tipo = t.toUpperCase();
+      const normTipo = normalizeTipo(c);
+      if (normTipo) {
+        tipo = normTipo;
         break;
       }
       const d = extractDoc(c);
@@ -147,24 +148,56 @@ export function sheetToRecords(
         break;
       }
     }
-    for (const c of cell(byTarget.get('identificacion'))) {
+
+    const idCells = cell(byTarget.get('identificacion'));
+    for (const c of idCells) {
       const d = extractDoc(c);
       if (d) {
         if (!tipo) tipo = d.tipo;
         if (!numero) numero = d.numero;
-      } else if (!numero && /^\d{5,12}$/.test(c.trim())) {
-        numero = c.trim();
+      } else {
+        const plain = extractPlainDocNumber(c);
+        if (plain && !numero) {
+          numero = plain;
+        }
       }
     }
+
     if ((!tipo || !numero) && nombre) {
       const rescue = splitSofiaPlusCell(cell(byTarget.get('nombre')).join(' '));
       if (!tipo && rescue.tipo) tipo = rescue.tipo;
       if (!numero && rescue.numero) numero = rescue.numero;
       if (rescue.nombre) nombre = rescue.nombre;
     }
+
+    // Si aún no se extrajo número pero el usuario puso texto en la celda de identificación,
+    // conservar el valor crudo para que el validador muestre cuál es el texto con error.
+    if (!numero && idCells.length > 0) {
+      const rawId = idCells.join(' ').trim();
+      const maybeTipo = normalizeTipo(rawId);
+      if (maybeTipo && !tipo) {
+        tipo = maybeTipo;
+      } else if (rawId) {
+        numero = rawId;
+      }
+    }
+
     if (!tipo) tipo = 'CC';
 
-    let email = cell(byTarget.get('email')).map((c) => extractEmail(c) ?? c).find((c) => c !== '') ?? '';
+    let email = '';
+    for (const c of cell(byTarget.get('email'))) {
+      const extracted = extractEmail(c);
+      if (extracted) {
+        email = extracted;
+        break;
+      }
+      // Si la celda tiene '@' pero está mal escrita, conservarla para reportar el error;
+      // si pusieron su propio nombre por error en la casilla de correo (sin '@'), ignorarla.
+      if (c.includes('@')) {
+        email = c.trim();
+        break;
+      }
+    }
     if (!email) {
       for (const c of row) {
         const e = extractEmail(c);

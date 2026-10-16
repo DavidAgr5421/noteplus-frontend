@@ -1,12 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useFicha, useUpdateFicha } from '../hooks/useFichas';
+import { useFicha, useFichas, useUpdateFicha } from '../hooks/useFichas';
 import { Button, Modal } from '@/shared/ui';
 import { asistenciasApi } from '@/features/asistencias/api/asistenciasApi';
 import { estudiantesApi } from '@/features/estudiantes/api/estudiantesApi';
+import { calificacionesApi } from '@/features/calificaciones/api/calificacionesApi';
 import { formatDate, formatHora, getDayName, getShortDayName } from '@/shared/utils/helpers';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
+import {
+  ScheduleConflictAlert,
+  findScheduleConflicts,
+  extractScheduleConflictFromError,
+  type ScheduleConflictData,
+} from '../components/ScheduleConflictAlert';
 import type { FichaHorario } from '../types';
 
 function trimestreFallback(fechaInicio: string): string {
@@ -63,6 +70,7 @@ const WEEK_DAYS = [1, 2, 3, 4, 5, 6, 0];
 
 function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; fechaInicio: string; horarios: FichaHorario[] }) {
   const update = useUpdateFicha();
+  const { data: activeFichas = [] } = useFichas(false);
   const { formato } = useFormatoHora();
   const [adding, setAdding] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -70,6 +78,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
   const [horaInicio, setHoraInicio] = useState('18:00');
   const [horaFin, setHoraFin] = useState('20:00');
   const [formError, setFormError] = useState<string | null>(null);
+  const [conflictAlert, setConflictAlert] = useState<ScheduleConflictData | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const sorted = useMemo(
@@ -82,6 +91,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
     setEditIndex(index);
     setAdding(false);
     setFormError(null);
+    setConflictAlert(null);
     setDay(h.diaSemana);
     setHoraInicio(h.hora);
     const endMin = toMinutes(h.hora) + h.duracionMinutos;
@@ -92,29 +102,46 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
     setAdding(false);
     setEditIndex(null);
     setFormError(null);
+    setConflictAlert(null);
   };
 
   const persist = (next: FichaHorario[]) => {
-    update.mutate({ id: fichaId, data: { horarios: next } }, { onSuccess: cancelForm });
+    update.mutate(
+      { id: fichaId, data: { horarios: next } },
+      {
+        onSuccess: cancelForm,
+        onError: (err) => {
+          const conflict = extractScheduleConflictFromError(err, 'modificar');
+          if (conflict) {
+            setConflictAlert(conflict);
+          }
+        },
+      },
+    );
   };
 
   const saveForm = () => {
     setFormError(null);
+    setConflictAlert(null);
     const dur = toMinutes(horaFin) - toMinutes(horaInicio);
     if (dur <= 0) {
       setFormError('La hora de fin debe ser posterior a la de inicio.');
       return;
     }
     const entry: FichaHorario = { diaSemana: day, hora: horaInicio, duracionMinutos: dur };
-    const others = sorted.filter((_, i) => i !== editIndex);
-    if (others.some((h) => h.diaSemana === entry.diaSemana && h.hora === entry.hora)) {
-      setFormError('Ya existe un horario ese día a esa hora.');
+    const next = (
+      editIndex !== null
+        ? sorted.map((h, i) => (i === editIndex ? entry : h))
+        : [...sorted, entry]
+    ).sort((a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora));
+
+    const conflict = findScheduleConflicts(next, activeFichas, fichaId, 'modificar');
+    if (conflict) {
+      setConflictAlert(conflict);
       return;
     }
-    const next = editIndex !== null
-      ? sorted.map((h, i) => (i === editIndex ? entry : h))
-      : [...sorted, entry];
-    persist(next.sort((a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora)));
+
+    persist(next);
   };
 
   const confirmRemove = () => {
@@ -140,7 +167,7 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         {!showForm && (
           <button
             type="button"
-            onClick={() => { setAdding(true); setEditIndex(null); setFormError(null); }}
+            onClick={() => { setAdding(true); setEditIndex(null); setFormError(null); setConflictAlert(null); }}
             className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
             aria-label="Añadir horario"
           >
@@ -150,7 +177,8 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
         )}
       </div>
 
-      <div className="p-5 sm:p-6">
+      <div className="p-5 sm:p-6 space-y-4">
+        <ScheduleConflictAlert conflict={conflictAlert} onClose={() => setConflictAlert(null)} />
         {sorted.length === 0 && !showForm && (
           <p className="text-sm text-slate-500 dark:text-slate-400">Aún no hay horarios definidos para esta ficha.</p>
         )}
@@ -336,6 +364,7 @@ function HorarioForm(props: {
 export function FichaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: ficha, isLoading, error } = useFicha(id || '');
+  const { formato } = useFormatoHora();
 
   const { data: clases } = useQuery({
     queryKey: ['ficha-clases', id, ficha?.fechaInicio],
@@ -354,6 +383,20 @@ export function FichaDetailPage() {
     retry: 1,
   });
 
+  const { data: actividades } = useQuery({
+    queryKey: ['actividades', id],
+    queryFn: () => calificacionesApi.getActividades(id || ''),
+    enabled: !!id,
+    retry: 1,
+  });
+
+  const { data: fichaNotas } = useQuery({
+    queryKey: ['ficha-notas', id],
+    queryFn: () => calificacionesApi.getFichaNotas(id || ''),
+    enabled: !!id,
+    retry: 1,
+  });
+
   const clasesRestantes = useMemo(() => {
     if (!ficha) return 0;
     if (!clases) return ficha.totalClases;
@@ -364,6 +407,45 @@ export function FichaDetailPage() {
     });
     return propias.length;
   }, [clases, ficha]);
+
+  const proximaClaseTexto = useMemo(() => {
+    if (!ficha || !clases) return '—';
+    const hoy = todayISO();
+    const futuras = clases
+      .filter((c: { fichaId?: string; ficha_id?: string; fecha: string; hora?: string }) => {
+        const fid = c.fichaId ?? c.ficha_id;
+        return fid === ficha.id && c.fecha.slice(0, 10) >= hoy;
+      })
+      .sort((a: { fecha: string; hora?: string }, b: { fecha: string; hora?: string }) =>
+        `${a.fecha} ${a.hora ?? ''}`.localeCompare(`${b.fecha} ${b.hora ?? ''}`)
+      );
+    if (futuras.length === 0) return 'Sin clases pendientes';
+    const next = futuras[0];
+    const fechaLabel = formatDate(next.fecha, 'short');
+    return next.hora ? `${fechaLabel} · ${formatHora(next.hora, formato)}` : fechaLabel;
+  }, [clases, ficha, formato]);
+
+  const statsEvaluacion = useMemo(() => {
+    const lista = actividades ?? [];
+    const raices = lista.filter((a) => !a.parentId);
+    const sub = Math.max(0, lista.length - raices.length);
+    const pct = raices.reduce((acc, a) => acc + (a.porcentaje || 0), 0);
+    return { total: lista.length, raices: raices.length, sub, pct };
+  }, [actividades]);
+
+  const statsNotas = useMemo(() => {
+    if (!fichaNotas || !ficha) return null;
+    const lista = fichaNotas.estudiantes ?? [];
+    const conNota = lista.filter((e) => typeof e.notaFinal === 'number');
+    if (conNota.length === 0) return { promedio: null, aprobados: 0, total: lista.length };
+    const suma = conNota.reduce((acc, e) => acc + (e.notaFinal ?? 0), 0);
+    const aprobados = conNota.filter((e) => (e.notaFinal ?? 0) >= ficha.notaMinimaAprobacion).length;
+    return {
+      promedio: suma / conNota.length,
+      aprobados,
+      total: lista.length,
+    };
+  }, [fichaNotas, ficha]);
 
   if (isLoading) {
     return (
@@ -390,6 +472,12 @@ export function FichaDetailPage() {
 
   const realizadas = Math.max(0, Math.min(ficha.totalClases, ficha.totalClases - clasesRestantes));
   const avancePct = ficha.totalClases > 0 ? Math.round((realizadas / ficha.totalClases) * 100) : 0;
+
+  const minutosSemanales = (ficha.horarios ?? []).reduce((sum, h) => sum + (h.duracionMinutos || 0), 0);
+  const intensidadSemanal =
+    (ficha.horarios?.length ?? 0) > 0
+      ? `${ficha.horarios!.length} sesión(es) · ${formatDuration(minutosSemanales)} / sem`
+      : 'Sin sesiones configuradas';
 
   const acciones = [
     {
@@ -433,81 +521,13 @@ export function FichaDetailPage() {
         </Link>
       </div>
 
-      {/* Header Card */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                ficha.archivada
-                  ? 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400'
-                  : ficha.finalizada
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'bg-emerald-50 text-emerald-700'
-              }`}>
-                <span className={`h-2 w-2 rounded-full ${estadoDot}`} aria-hidden="true" />
-                {estado}
-              </span>
-              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
-                {ficha.codigo}
-              </span>
-              {trimestre && (
-                <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-                  {trimestre}
-                </span>
-              )}
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {ficha.nombre}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              Iniciada el {formatDate(ficha.fechaInicio, 'long')}
-            </p>
-          </div>
-
-          {/* Quick CTA Actions */}
-          <div className="flex flex-wrap items-center gap-2 sm:self-center">
-            <Link to={`/fichas/${ficha.id}/editar`}>
-              <Button variant="outline" size="sm">
-                <ActionGlyph d={PENCIL_PATH} />
-                <span>Editar ficha</span>
-              </Button>
-            </Link>
-            <Link to={`/fichas/${ficha.id}/asistencias`}>
-              <Button variant="navyGreen" size="sm">
-                <ActionGlyph d={CALCHECK_PATH} />
-                <span>Tomar asistencia</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Summary Stats bar inside the header */}
-        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-4">
-          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Estudiantes</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{estudiantes?.length ?? '—'}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total clases</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{ficha.totalClases}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Clases restantes</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{clasesRestantes}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50/80 dark:bg-white/5 p-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Nota mínima</span>
-            <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">{ficha.notaMinimaAprobacion.toFixed(1)}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Two columns: Info & Modules */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Información General */}
-        <section aria-label="Información General" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
+      {/* Mosaico: Izquierda (Información General unificada) — Derecha (Horarios de clase + Módulos de Gestión) */}
+      <div className="grid gap-6 md:grid-cols-2 items-start">
+        {/* Columna izquierda: Información General (unida con cabecera de ficha y datos clave) */}
+        <section
+          aria-label="Información General"
+          className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm"
+        >
           <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -515,97 +535,203 @@ export function FichaDetailPage() {
               </svg>
               <h2 className="text-sm font-semibold tracking-wide text-white">Información General</h2>
             </div>
+            <Link
+              to={`/fichas/${ficha.id}/editar`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <ActionGlyph d={PENCIL_PATH} />
+              <span>Editar ficha</span>
+            </Link>
           </div>
-          <dl className="space-y-3.5 p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500 dark:text-slate-400">Fecha de inicio</dt>
-              <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100">{formatDate(ficha.fechaInicio, 'long')}</dd>
+
+          <div className="p-5 sm:p-6 space-y-5">
+            {/* Identidad principal de la ficha */}
+            <div className="space-y-2 border-b border-slate-100 dark:border-white/10 pb-5">
+              <div className="flex flex-wrap items-center gap-4 text-[1.15rem] leading-tight">
+                <span
+                  className={`inline-flex items-center gap-2 font-semibold ${
+                    ficha.archivada
+                      ? 'text-slate-600 dark:text-slate-400'
+                      : ficha.finalizada
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-emerald-700 dark:text-emerald-300'
+                  }`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${estadoDot}`} aria-hidden="true" />
+                  {estado}
+                </span>
+                {trimestre && (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                    <svg
+                      className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400 shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {trimestre}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  {ficha.nombre}
+                </h1>
+                <span className="text-[1.75rem] leading-tight text-slate-400 dark:text-slate-500 font-semibold" aria-hidden="true">
+                  -
+                </span>
+                <span className="text-[1.75rem] leading-tight font-mono font-semibold text-slate-700 dark:text-slate-200">
+                  {ficha.codigo}
+                </span>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                Iniciada el {formatDate(ficha.fechaInicio, 'long')}
+              </p>
             </div>
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500 dark:text-slate-400">Trimestre</dt>
-              <dd className="text-sm font-semibold text-slate-800 dark:text-slate-100">{trimestre}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500 dark:text-slate-400">Estudiantes matriculados</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">{estudiantes?.length ?? '—'}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-              <dt className="text-sm text-slate-500 dark:text-slate-400">Nota mínima aprobatoria</dt>
-              <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                {ficha.notaMinimaAprobacion.toFixed(1)}
-              </dd>
-            </div>
-            <div className="pt-1">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Progreso de clases</dt>
+
+            {/* Datos detallados de la ficha */}
+            <dl className="space-y-3.5">
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Estudiantes matriculados</dt>
                 <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {realizadas} / {ficha.totalClases} ({avancePct}%)
+                  {estudiantes?.length ?? '—'} aprendices
                 </dd>
               </div>
-              <div
-                className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
-                role="progressbar"
-                aria-valuenow={avancePct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Avance de clases"
-              >
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Nota mínima aprobatoria</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {ficha.notaMinimaAprobacion.toFixed(1)} / 5.0
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Intensidad horaria</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {intensidadSemanal}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Clases restantes</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {clasesRestantes} de {ficha.totalClases} sesiones
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Próxima clase</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {proximaClaseTexto}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Actividades evaluativas</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {statsEvaluacion.raices} princ. · {statsEvaluacion.sub} sub ({statsEvaluacion.pct.toFixed(0)}%)
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
+                <dt className="text-sm text-slate-500 dark:text-slate-400">Promedio y aprobados</dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                  {statsNotas && statsNotas.promedio !== null
+                    ? `${statsNotas.promedio.toFixed(1)} prom. · ${statsNotas.aprobados}/${statsNotas.total} aprob.`
+                    : 'Sin calificaciones'}
+                </dd>
+              </div>
+
+              <div className="pt-1">
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-sm text-slate-500 dark:text-slate-400">Progreso de clases</dt>
+                  <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                    {realizadas} / {ficha.totalClases} ({avancePct}%)
+                  </dd>
+                </div>
                 <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                  style={{ width: `${avancePct}%` }}
-                />
+                  className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
+                  role="progressbar"
+                  aria-valuenow={avancePct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label="Avance de clases"
+                >
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    style={{ width: `${avancePct}%` }}
+                  />
+                </div>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        {/* Columna derecha: Horarios de clase + Módulos de Gestión */}
+        <div className="space-y-6">
+          <HorariosSection
+            fichaId={ficha.id}
+            fechaInicio={ficha.fechaInicio.slice(0, 10)}
+            horarios={ficha.horarios ?? []}
+          />
+
+          <section
+            aria-label="Módulos de Gestión"
+            className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm"
+          >
+            <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                  />
+                </svg>
+                <h2 className="text-sm font-semibold tracking-wide text-white">Módulos de Gestión</h2>
               </div>
             </div>
-          </dl>
-        </section>
-
-        {/* Módulos de Gestión */}
-        <section aria-label="Módulos de Gestión" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
-          <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
-            <div className="flex items-center gap-2">
-              <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-              <h2 className="text-sm font-semibold tracking-wide text-white">Módulos de Gestión</h2>
-            </div>
-          </div>
-          <div className="space-y-3 p-5 sm:p-6">
-            {acciones.map((a) => (
-              <Link
-                key={a.label}
-                to={a.to}
-                className="group flex items-center justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 dark:bg-white/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-emerald-400 group-hover:scale-105 transition-transform">
-                    <ActionGlyph d={a.d} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-navy-900 dark:group-hover:text-emerald-300">{a.label}</p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{a.desc}</p>
-                  </div>
-                </div>
-                <svg
-                  className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            <div className="space-y-3 p-5 sm:p-6">
+              {acciones.map((a) => (
+                <Link
+                  key={a.label}
+                  to={a.to}
+                  className="group flex items-center justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 dark:bg-white/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      {/* Horarios */}
-      <div>
-        <HorariosSection
-          fichaId={ficha.id}
-          fechaInicio={ficha.fechaInicio.slice(0, 10)}
-          horarios={ficha.horarios ?? []}
-        />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-emerald-400 group-hover:scale-105 transition-transform">
+                      <ActionGlyph d={a.d} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-navy-900 dark:group-hover:text-emerald-300">
+                        {a.label}
+                      </p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{a.desc}</p>
+                    </div>
+                  </div>
+                  <svg
+                    className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

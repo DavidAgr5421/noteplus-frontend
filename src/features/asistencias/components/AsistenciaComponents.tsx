@@ -177,7 +177,7 @@ export function ClaseCard({ clase, onClick, isToday, dimmed }: ClaseCardProps) {
       <span
         aria-hidden="true"
         className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-colors ${
-          ahora ? 'border-navy-400 bg-navy-400' : 'border-navy-900 bg-transparent group-hover:border-white'
+          ahora ? 'border-navy-400 bg-navy-400 dark:border-emerald-400 dark:bg-emerald-400' : 'border-navy-900 dark:border-emerald-400/80 bg-transparent group-hover:border-white'
         }`}
       />
       <span className="min-w-0 flex-1 leading-tight">
@@ -200,7 +200,7 @@ interface AsistenciaRowProps {
 
 export function AsistenciaRow({ asistencia, onChange, disabled }: AsistenciaRowProps) {
   return (
-    <tr className={!asistencia.estudiante ? 'bg-gray-50' : ''}>
+    <tr className={!asistencia.estudiante ? 'bg-gray-50 dark:bg-white/5' : 'dark:bg-black'}>
       <td className="px-4 py-3 text-gray-900 dark:text-slate-100">
         {asistencia.estudiante?.nombre || 'Estudiante no encontrado'}
       </td>

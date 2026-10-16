@@ -22,7 +22,7 @@ function SharpRule({ className }: { className?: string }) {
 export function AuthLayout() {
   const { oscuro } = useModoOscuro();
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-slate-950 lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-[#0f172a] lg:flex-row">
       <section className="flex min-h-screen w-full flex-col items-center justify-center gap-10 px-6 py-12 sm:px-10 lg:w-2/5">
         <div className="flex w-full max-w-sm flex-col items-center gap-5">
           <SharpRule />

@@ -379,10 +379,10 @@ export function MarcarAsistenciasPage() {
         </div>
       )}
 
-      <div className={`overflow-x-auto rounded-2xl ${redimensionando ? 'select-none' : ''}`} style={{ zoom }}>
-        <table className="w-full min-w-[640px] text-sm">
+      <div className={`overflow-x-auto rounded-2xl dark:bg-black dark:border dark:border-white/10 ${redimensionando ? 'select-none' : ''}`} style={{ zoom }}>
+        <table className="w-full min-w-[640px] text-sm dark:bg-black">
           <thead>
-            <tr className="bg-navy-900 text-left">
+            <tr className="bg-navy-900 dark:bg-[#071626] text-left">
               <ThAjustable k="fila" className="px-2 py-3" anchos={anchosCol} onResize={iniciarResize}>
                 <span className="sr-only">Fila</span>
               </ThAjustable>
@@ -400,14 +400,14 @@ export function MarcarAsistenciasPage() {
               </ThAjustable>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/60 dark:divide-white/10">
+          <tbody className="divide-y divide-slate-200/60 dark:divide-white/10 dark:bg-black">
             {visibles.map((est, i) => {
                 const marca = marcas[est.id];
                 if (!marca) return null;
                 const asistio = marca.estado === 'ASISTIO';
                 const tieneJustificacion = !!marca.justificacion;
                 return (
-                  <tr key={est.id} className="bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-colors">
+                  <tr key={est.id} className="bg-white/60 dark:bg-black hover:bg-white dark:hover:bg-white/[0.04] transition-colors">
                     <td className="px-2 py-3">
                       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-[0.625rem] font-bold tabular-nums text-slate-700 dark:text-slate-300">
                         {i + 1}
@@ -416,13 +416,13 @@ export function MarcarAsistenciasPage() {
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{est.nombre}</td>
                     <td className="px-4 py-3 text-slate-500 dark:text-slate-400 tabular-nums">{est.identificacion}</td>
                     <td className="px-4 py-3">
-                      <div className="inline-flex w-fit rounded-full bg-slate-200/60 p-0.5 shadow-xs" role="group" aria-label={`Asistencia de ${est.nombre}`}>
+                      <div className="inline-flex w-fit rounded-full bg-slate-200/60 dark:bg-white/10 p-0.5 shadow-xs" role="group" aria-label={`Asistencia de ${est.nombre}`}>
                         <button
                           type="button"
                           onClick={() => setEstado(est.id, 'ASISTIO')}
                           aria-pressed={asistio}
                           className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
-                            asistio ? 'bg-emerald-100 text-emerald-900 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                            asistio ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-300 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                           }`}
                         >
                           ✓ Asistió
@@ -432,7 +432,7 @@ export function MarcarAsistenciasPage() {
                           onClick={() => setEstado(est.id, 'NO_ASISTIO')}
                           aria-pressed={!asistio}
                           className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
-                            !asistio ? 'bg-[#a16074]/15 text-[#8e5063] border border-[#a16074]/30 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                            !asistio ? 'bg-[#a16074]/15 text-[#8e5063] dark:bg-[#a16074]/25 dark:text-[#e2a8b8] border border-[#a16074]/30 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                           }`}
                         >
                           ✗ No asistió

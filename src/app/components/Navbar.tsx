@@ -6,7 +6,6 @@ import type { Notificacion, NotificacionTipo } from '@/features/notificaciones/t
 import { classNames } from '@/shared/utils/helpers';
 import { useModoOscuro } from '@/shared/hooks/useModoOscuro';
 import logoNavbarLight from '@/assets/logo_noteplus_navbar_light.png';
-import logoNavbarOscuro from '@/assets/logo_noteplus_navbar.png';
 
 const NAV_LINKS: { to: string; label: string; end?: boolean }[] = [
   { to: '/fichas', label: 'Inicio', end: true },
@@ -14,8 +13,6 @@ const NAV_LINKS: { to: string; label: string; end?: boolean }[] = [
   { to: '/actividades', label: 'Actividades' },
   { to: '/asistencias', label: 'Asistencias' },
 ];
-
-const LOGO_GLOW = 'drop-shadow(0 0 2px rgba(255,255,255,0.5))';
 
 const TIPO_ICON: Record<NotificacionTipo, { bg: string; path: string }> = {
   clase_proxima: {
@@ -108,16 +105,15 @@ export function Navbar() {
   }, [panelAbierto]);
 
   return (
-    <header className="sticky top-0 z-40 bg-navy-950 shadow-lg shadow-navy-950/40 dark:bg-[#8a8fa8] dark:shadow-black/30">
+    <header className="sticky top-0 z-40 bg-navy-950 shadow-lg shadow-navy-950/40 dark:bg-black dark:border-b dark:border-white/10 dark:shadow-black/70">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:px-6 md:h-16 md:flex-nowrap md:gap-x-5 md:py-0 lg:px-8">
         <NavLink to="/fichas" className="order-1 shrink-0" aria-label="NotePlus, ir al inicio">
           <img
-            src={oscuro ? logoNavbarOscuro : logoNavbarLight}
+            src={logoNavbarLight}
             alt="NotePlus"
-            width={oscuro ? 2082 : 1373}
-            height={oscuro ? 437 : 237}
+            width={1373}
+            height={237}
             className="h-7 w-auto transition-transform duration-200 hover:scale-105 md:h-9"
-            style={oscuro ? undefined : { filter: LOGO_GLOW }}
           />
         </NavLink>
 
@@ -128,7 +124,7 @@ export function Navbar() {
             aria-pressed={oscuro}
             aria-label={oscuro ? 'Desactivar modo oscuro' : 'Activar modo oscuro'}
             title={oscuro ? 'Desactivar modo oscuro' : 'Activar modo oscuro'}
-            className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 dark:text-navy-950 dark:hover:bg-navy-950/10 dark:hover:text-navy-950 dark:focus:ring-navy-950/30"
+            className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/40 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/30"
           >
             {oscuro ? (
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
@@ -146,7 +142,7 @@ export function Navbar() {
               onClick={() => setPanelAbierto((v) => !v)}
               aria-expanded={panelAbierto}
               aria-label={`Notificaciones${user ? ` de ${user.nombre}` : ''}${notificaciones.length > 0 ? `, ${notificaciones.length} sin leer` : ''}`}
-              className="relative rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white dark:text-navy-950 dark:hover:bg-navy-950/10 dark:hover:text-navy-950"
+              className="relative rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path
@@ -157,14 +153,14 @@ export function Navbar() {
                 />
               </svg>
               {notificaciones.length > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-navy-950 dark:ring-[#8a8fa8]" aria-hidden="true">
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-navy-950 dark:ring-black" aria-hidden="true">
                   {notificaciones.length > 9 ? '9+' : notificaciones.length}
                 </span>
               )}
             </button>
 
             {panelAbierto && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl sm:w-96 dark:border-white/10 dark:bg-slate-900">
+              <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl sm:w-96 dark:border-white/15 dark:bg-[#08080c]">
                 <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-white/10">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">Notificaciones</p>
                   {notificaciones.length > 0 && (
@@ -229,13 +225,13 @@ export function Navbar() {
             )}
           </div>
 
-          <span className="mx-1 h-6 w-px bg-white/20 dark:bg-navy-950/25" aria-hidden="true" />
+          <span className="mx-1 h-6 w-px bg-white/20 dark:bg-white/15" aria-hidden="true" />
 
           <button
             type="button"
             onClick={() => logout()}
             disabled={isLogoutPending}
-            className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-[#a16074] transition-colors hover:bg-white/10 hover:text-[#b87489] focus:outline-none focus:ring-2 focus:ring-[#a16074]/40 disabled:opacity-50 dark:text-navy-950 dark:hover:bg-navy-950/10 dark:focus:ring-navy-950/30"
+            className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-[#a16074] transition-colors hover:bg-white/10 hover:text-[#b87489] focus:outline-none focus:ring-2 focus:ring-[#a16074]/40 disabled:opacity-50 dark:text-[#c47a90] dark:hover:bg-white/10 dark:hover:text-[#d991a6] dark:focus:ring-[#c47a90]/40"
           >
             Cerrar sesión
           </button>
@@ -254,8 +250,8 @@ export function Navbar() {
                 classNames(
                   'shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-white/15 text-white dark:bg-navy-950/15 dark:text-navy-950'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-navy-950/70 dark:hover:bg-navy-950/10 dark:hover:text-navy-950'
+                    ? 'bg-white/15 text-white dark:bg-white/12 dark:text-emerald-400'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
                 )
               }
             >

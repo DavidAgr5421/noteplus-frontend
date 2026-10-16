@@ -13,15 +13,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.99]';
     
     const variantStyles = {
-      primary: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
+      primary: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs dark:bg-black dark:hover:bg-neutral-900',
       secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200/90 focus:ring-slate-400 border border-slate-200/60 shadow-xs dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15 dark:border-white/10',
       danger: 'bg-[#a16074] text-white hover:bg-[#8e5063] focus:ring-[#a16074]/50 font-medium shadow-xs',
       ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-300 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100',
       outline: 'border border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-400 shadow-xs dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/5 dark:border-white/15',
-      navy: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
-      navyGreen: 'bg-navy-900 text-emerald-400 font-semibold hover:bg-navy-800 focus:ring-navy-900 shadow-xs',
+      navy: 'bg-navy-900 text-white hover:bg-navy-800 focus:ring-navy-900 shadow-xs dark:bg-black dark:hover:bg-neutral-900',
+      navyGreen: 'bg-navy-900 text-emerald-400 font-semibold hover:bg-navy-800 focus:ring-navy-900 shadow-xs dark:bg-black dark:hover:bg-neutral-900',
       success: 'bg-emerald-700 text-white hover:bg-emerald-800 focus:ring-emerald-600 font-medium shadow-xs',
-      light: 'bg-white text-navy-900 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 focus:ring-navy-900/20 font-semibold shadow-xs dark:bg-slate-900 dark:text-slate-100 dark:border-white/15 dark:hover:bg-slate-800',
+      light: 'bg-white text-navy-900 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 focus:ring-navy-900/20 font-semibold shadow-xs dark:bg-black dark:text-slate-100 dark:border-white/15 dark:hover:bg-neutral-900',
       lightGreen: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100/90 border border-emerald-200/80 focus:ring-emerald-500/30 font-semibold shadow-xs dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/20 dark:hover:bg-emerald-500/25',
     };
     

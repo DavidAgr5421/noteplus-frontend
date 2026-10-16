@@ -1,43 +1,94 @@
 import { TIPOS_IDENTIFICACION } from '@/features/estudiantes/types';
 
 const TIPOS = TIPOS_IDENTIFICACION.map((t) => t.valor);
-const TIPO_PATTERN = TIPOS.join('|');
+
+/**
+ * Patrón de abreviaturas con o sin puntos/espacios intermedios:
+ * Soporta: CC, C.C, C.C., Cc:, TI, T.I, T.I., Ti., CE, C.E, PA, P.A, PEP, P.E.P, PPT, P.P.T, RC, R.C
+ * además de nombres completos ("Cédula de ciudadanía", "Tarjeta de identidad", "Pasaporte").
+ */
+const ABBR_PATTERN = [
+  'C\\.?\\s*C\\.?',
+  'T\\.?\\s*I\\.?',
+  'C\\.?\\s*E\\.?',
+  'P\\.?\\s*A\\.?',
+  'P\\.?\\s*E\\.?\\s*P\\.?',
+  'P\\.?\\s*P\\.?\\s*T\\.?',
+  'R\\.?\\s*C\\.?',
+  'C[ÉE]DULA(?:\\s+DE\\s+(?:CIUDADAN[ÍI]A|EXTRANJER[ÍI]A))?',
+  'TARJETA\\s+DE\\s+IDENTIDAD',
+  'PASAPORTE',
+].join('|');
 
 const DOC_RE = new RegExp(
-  `\\b(${TIPO_PATTERN}|C[ÉE]DULA(?:\\s+DE\\s+CIUDADAN[ÍI]A)?|TARJETA\\s+DE\\s+IDENTIDAD|PASAPORTE)\\s*[:#\\-.]?\\s*(\\d{5,12})\\b`,
+  `(?:^|\\b)(${ABBR_PATTERN})\\s*[:#\\-.,/]?\\s*(\\d[\\d.\\s]{3,14}\\d)(?=\\b|$)`,
   'i',
 );
+
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
 /** Nombres de tipo largos → código ("cédula de ciudadanía" → "CC"). Claves sin tildes. */
 const TIPO_LARGO: Record<string, string> = {
-  'cedula': 'CC', 'cedula de ciudadania': 'CC', 'cedula ciudadania': 'CC',
+  'cedula': 'CC',
+  'cedula de ciudadania': 'CC',
+  'cedula ciudadania': 'CC',
   'tarjeta de identidad': 'TI',
-  'cedula de extranjeria': 'CE', 'cedula extranjeria': 'CE',
+  'tarjeta identidad': 'TI',
+  'cedula de extranjeria': 'CE',
+  'cedula extranjeria': 'CE',
   'pasaporte': 'PA',
+  'registro civil': 'RC',
 };
 
 export function normalizeTipo(raw: string): string | null {
-  const v = (raw ?? '').trim().toUpperCase();
-  if ((TIPOS as string[]).includes(v)) return v;
-  const low = (raw ?? '')
+  if (!raw) return null;
+  // Quitar puntos, dos puntos, guiones y espacios para normalizar "T.I", "C.C.", "Ti.", "Cc:" → "TI", "CC"
+  const compact = raw.replace(/[.\s:;#\-,/]/g, '').toUpperCase();
+  if ((TIPOS as string[]).includes(compact)) return compact;
+
+  const low = raw
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.:;#\-,/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return TIPO_LARGO[low] ?? null;
 }
 
 /**
  * Extrae (tipo, número) de una celda que trae ambos juntos:
- * "CC 123456", "Cédula: 123456", "TI123456".
+ * "CC 123456", "T.I 1011513696", "C.C 1035419262", "Ti.1049322140", "Cc: 1020108013", "Cédula: 123456".
  */
 export function extractDoc(cell: string): { tipo: string; numero: string } | null {
   if (!cell) return null;
   const m = cell.match(DOC_RE);
   if (!m) return null;
-  const tipo = normalizeTipo(m[1]) ?? m[1].toUpperCase();
-  return { tipo, numero: m[2] };
+  const digits = m[2].replace(/\D/g, '');
+  if (digits.length < 5 || digits.length > 12) return null;
+  const tipo = normalizeTipo(m[1]) ?? 'CC';
+  return { tipo, numero: digits };
+}
+
+/**
+ * Extrae únicamente dígitos de documento cuando la celda solo tiene el número
+ * (con posibles puntos de miles o prefijos como "N°", "No.", "#"):
+ * ej. "1.007.436.463" -> "1007436463".
+ */
+export function extractPlainDocNumber(cell: string): string | null {
+  if (!cell) return null;
+  const cleaned = cell
+    .trim()
+    .replace(/^(?:n[°ºo.]?|nro\.?|num\.?|id\.?|doc\.?|documento)\s*[:#\-]?\s*/i, '')
+    .trim();
+  // Solo dígitos o dígitos separados por puntos de miles (ej. 1.023.456.789)
+  if (/^\d{5,12}$/.test(cleaned)) return cleaned;
+  if (/^\d{1,3}(?:\.\d{3}){1,3}$/.test(cleaned)) {
+    const digits = cleaned.replace(/\./g, '');
+    if (digits.length >= 5 && digits.length <= 12) return digits;
+  }
+  return null;
 }
 
 /** Extrae el primer email de una celda. */

@@ -138,9 +138,9 @@ export function AsistenciasPage() {
         </div>
       </div>
 
-      <Card variant="default" padding="none">
+      <Card variant="default" padding="none" className="dark:bg-black">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4 dark:bg-black rounded-2xl">
             {clasesFicha.length === 0 ? (
               <div className="py-8 text-center text-gray-500 dark:text-slate-400">
                 <p>No hay clases registradas para esta ficha en el período</p>
@@ -157,7 +157,7 @@ export function AsistenciasPage() {
                 </button>
               </div>
             ) : (
-              <table className="w-full table-fixed border-collapse text-sm">
+              <table className="w-full table-fixed border-collapse text-sm dark:bg-black">
                 <colgroup>
                   <col className="w-[26%]" />
                   <col className="w-[12%]" />
@@ -167,7 +167,7 @@ export function AsistenciasPage() {
                   <col className="w-[14%]" />
                 </colgroup>
                 <thead>
-                  <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
+                  <tr className="rounded-xl bg-navy-900 dark:bg-[#071626] text-sm font-semibold text-white">
                     <th className="rounded-l-xl px-4 py-3 text-left">Día</th>
                     <th className="px-4 py-3 text-left">Fecha</th>
                     <th className="px-2 py-3 text-center">Horario</th>
@@ -176,9 +176,9 @@ export function AsistenciasPage() {
                     <th className="rounded-r-xl px-2 py-3 text-center">Acción</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="dark:bg-black">
                   {clasesVisibles.map(clase => (
-                    <tr key={clase.id} className="border-b border-slate-100 dark:border-white/10 hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors align-middle">
+                    <tr key={clase.id} className="border-b border-slate-100 dark:border-white/10 dark:bg-black hover:bg-slate-50/70 dark:hover:bg-white/[0.04] transition-colors align-middle">
                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                         {formatDate(clase.fecha, 'long')}
                       </td>
@@ -190,7 +190,9 @@ export function AsistenciasPage() {
                       </td>
                       <td className="px-2 py-3 text-center">
                         <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          clase.modalidad === 'PRESENCIAL' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          clase.modalidad === 'PRESENCIAL'
+                            ? 'bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
                         }`}>
                           {clase.modalidad === 'PRESENCIAL' ? 'Presencial' : 'Virtual'}
                         </span>
@@ -198,7 +200,9 @@ export function AsistenciasPage() {
                       <td className="px-2 py-3 text-center">
                         <span className="inline-flex items-center justify-center gap-2">
                           <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            clase.realizada ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            clase.realizada
+                              ? 'bg-green-100 text-green-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-amber-500/15 dark:text-amber-300'
                           }`}>
                             {clase.realizada ? 'Realizada' : 'Pendiente'}
                           </span>
@@ -210,7 +214,7 @@ export function AsistenciasPage() {
                             title={clase.realizada ? 'Marcar como no realizada' : 'Marcar como realizada'}
                             disabled={updateClase.isPending}
                             onClick={() => updateClase.mutate({ claseId: clase.id, data: { modalidad: clase.modalidad, realizada: !clase.realizada } })}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:opacity-50 ${clase.realizada ? 'bg-green-600' : 'bg-slate-300 hover:bg-slate-400'}`}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:opacity-50 ${clase.realizada ? 'bg-green-600' : 'bg-slate-300 hover:bg-slate-400 dark:bg-white/20 dark:hover:bg-white/30'}`}
                           >
                             <span
                               aria-hidden="true"

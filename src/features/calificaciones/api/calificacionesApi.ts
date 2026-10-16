@@ -42,4 +42,12 @@ export const calificacionesApi = {
   updateNotaMinima: async (fichaId: string, notaMinima: number): Promise<void> => {
     await apiClient.patch(`/fichas/${fichaId}`, { notaMinimaAprobacion: notaMinima });
   },
-};
+
+  copiarActividades: async (
+    fichaId: string,
+    data: { origenFichaId: string; reemplazarExistentes?: boolean }
+  ): Promise<Actividad[]> => {
+    const response = await apiClient.post(`/fichas/${fichaId}/copiar-actividades`, data);
+    return response.data;
+  },
+};

@@ -65,9 +65,13 @@ export function EstudiantesPage() {
         contacto: r.contacto || undefined,
       })),
       {
-        onSuccess: () => {
-          setImportModalOpen(false);
-          setImportResult(null);
+        onSuccess: (res) => {
+          if (res.skipped && res.skipped.length > 0) {
+            setImportResult(res);
+          } else {
+            setImportModalOpen(false);
+            setImportResult(null);
+          }
         },
       },
     );
@@ -175,9 +179,9 @@ export function EstudiantesPage() {
         </div>
       </div>
 
-      <Card variant="default" padding="none">
+      <Card variant="default" padding="none" className="dark:bg-black">
         <CardContent className="p-0">
-          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4">
+          <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4 dark:bg-black rounded-2xl">
             {isLoading ? (
               <div className="flex h-32 items-center justify-center">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
@@ -187,9 +191,9 @@ export function EstudiantesPage() {
                 <p>{search ? `Sin resultados para “${search}”.` : 'No hay estudiantes registrados'}</p>
               </div>
             ) : (
-              <table className="w-full table-fixed border-collapse text-sm">
+              <table className="w-full table-fixed border-collapse text-sm dark:bg-black">
                 <thead>
-                  <tr className="rounded-xl bg-navy-900 text-sm font-semibold text-white">
+                  <tr className="rounded-xl bg-navy-900 dark:bg-[#071626] text-sm font-semibold text-white">
                     <th className="rounded-l-xl px-4 py-3 text-left">Nombre</th>
                     <th className="px-2 py-3 text-center">Tipo doc.</th>
                     <th className="px-2 py-3 text-center">Identificación</th>
@@ -198,9 +202,9 @@ export function EstudiantesPage() {
                     <th className="rounded-r-xl px-2 py-3 text-center">Acciones</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="dark:bg-black">
                   {paginatedEstudiantes.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-100 dark:border-white/10 hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors align-middle">
+                    <tr key={row.id} className="border-b border-slate-100 dark:border-white/10 dark:bg-black hover:bg-slate-50/70 dark:hover:bg-white/[0.04] transition-colors align-middle">
                       <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900 dark:text-white">
                         {row.nombre}
                       </td>
@@ -280,6 +284,7 @@ export function EstudiantesPage() {
         isLoading={importBatch.isPending}
         serverResult={importResult}
         serverError={importErrorMsg}
+        onClearServerResult={() => setImportResult(null)}
       />
 
       <Modal
