@@ -14,6 +14,7 @@ import {
   extractScheduleConflictFromError,
   type ScheduleConflictData,
 } from '../components/ScheduleConflictAlert';
+import { FichaNavTabs } from '../components/FichaNavTabs';
 import type { FichaHorario } from '../types';
 
 function trimestreFallback(fechaInicio: string): string {
@@ -508,18 +509,13 @@ export function FichaDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {/* Breadcrumb */}
-      <div>
-        <Link
-          to="/fichas"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-navy-900 dark:hover:text-emerald-300 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Volver a Mis Fichas
-        </Link>
-      </div>
+      {/* Navegación y pestañas de la ficha */}
+      <FichaNavTabs
+        fichaId={id || ''}
+        activeTab="detalle"
+        fichaNombre={ficha.nombre}
+        fichaCodigo={ficha.codigo}
+      />
 
       {/* Mosaico: Izquierda (Información General unificada) — Derecha (Horarios de clase + Módulos de Gestión) */}
       <div className="grid gap-6 md:grid-cols-2 items-start">

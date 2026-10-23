@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Button, Card, CardContent, TablePagination, Input, Modal } from '@/shared/ui';
 import { useEstudiantes, useCreateEstudiante, useUpdateEstudiante, useDeleteEstudiante, useImportBatch } from '../hooks/useEstudiantes';
 import { useFicha } from '@/features/fichas/hooks/useFichas';
+import { FichaNavTabs } from '@/features/fichas/components/FichaNavTabs';
 import { EstudianteModal } from '../components/EstudianteForm';
 import { ImportWizard, ExportDialog, ImportHint, type EstudianteImportado } from '@/features/importacion';
 import { TIPOS_IDENTIFICACION, type Estudiante, type TipoIdentificacion } from '../types';
@@ -80,6 +81,15 @@ export function EstudiantesPage() {
   return (
     <div className="space-y-6">
       <ImportHint ctaLabel="Importar ahora" onCta={() => setImportModalOpen(true)} />
+
+      {/* Pestañas de navegación de la ficha */}
+      <FichaNavTabs
+        fichaId={fichaId || ''}
+        activeTab="estudiantes"
+        fichaNombre={ficha?.nombre}
+        fichaCodigo={ficha?.codigo}
+      />
+
       <div
         className="rounded-3xl px-5 py-4 panel-fade"
       >

@@ -28,6 +28,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "^1.2.15",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query-devtools": "^5.104.1",
     "@testing-library/jest-dom": "^7.0.1",

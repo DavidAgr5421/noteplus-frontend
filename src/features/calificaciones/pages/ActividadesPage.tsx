@@ -13,6 +13,7 @@ import {
 } from '../hooks/useCalificaciones';
 import { useFicha, useFichas } from '@/features/fichas/hooks/useFichas';
 import { FichaHeaderCard } from '@/features/fichas/components/FichaHeaderCard';
+import { FichaNavTabs } from '@/features/fichas/components/FichaNavTabs';
 import { ActividadModal, NotasTable } from '../components/CalificacionesComponents';
 import { ExportDialog, ImportHint } from '@/features/importacion';
 import type { Actividad, ActividadFormData } from '../types';
@@ -82,6 +83,7 @@ export function ActividadesPage() {
   const [origenFichaId, setOrigenFichaId] = useState('');
   const [reemplazarExistentes, setReemplazarExistentes] = useState(true);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [activeActividadId, setActiveActividadId] = useState<string | null>(null);
 
   const LAYOUT_STORAGE_KEY = 'noteplus:actividades-layout';
   const [vertical, setVertical] = useState(() => {
@@ -277,11 +279,30 @@ export function ActividadesPage() {
 
   const renderAcciones = (actividad: Actividad) => (
     <div className="flex items-center justify-center gap-1">
+      {!finalizada && !actividad.parentId && (
+        <button
+          type="button"
+          aria-label={`Añadir subactividad a ${actividad.nombre}`}
+          title="Añadir subactividad"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAddActividad(actividad.id);
+          }}
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 dark:bg-black dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-navy-900 shadow-xs"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
       <button
         type="button"
         aria-label={`Editar ${actividad.nombre}`}
         title="Editar"
-        onClick={() => handleEditActividad(actividad)}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditActividad(actividad);
+        }}
         className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white focus:outline-none focus:ring-2 focus:ring-green-600"
       >
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -292,7 +313,10 @@ export function ActividadesPage() {
         type="button"
         aria-label={`Eliminar ${actividad.nombre}`}
         title="Eliminar"
-        onClick={() => setDeletingActividad(actividad)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setDeletingActividad(actividad);
+        }}
         className="flex h-6 w-6 items-center justify-center rounded-full bg-[#a16074] text-white hover:bg-[#8e5063] focus:outline-none focus:ring-2 focus:ring-[#a16074]/50 shadow-xs"
       >
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -390,13 +414,28 @@ export function ActividadesPage() {
 
     return (
       <Fragment key={actividad.id}>
-        <tr className="group border-b border-gray-100 dark:border-white/10 dark:bg-black align-middle">
+        <tr
+          onClick={() => {
+            setActiveActividadId((prev) => (prev === actividad.id ? null : actividad.id));
+            if (hasChildren && isCollapsed) {
+              toggleCollapsed(actividad.id);
+            }
+          }}
+          className={`group border-b border-gray-100 dark:border-white/10 dark:bg-black align-middle transition-colors cursor-pointer ${
+            activeActividadId === actividad.id
+              ? 'bg-emerald-50/70 dark:bg-emerald-950/20 ring-1 ring-inset ring-emerald-500/30'
+              : 'hover:bg-slate-50/60 dark:hover:bg-white/5'
+          }`}
+        >
           <td className="py-3 pl-4 pr-2">
             <div className="relative flex flex-col min-w-0">
               <div className="flex items-center gap-1 min-w-0">
                 {hasChildren ? (
                   <button
-                    onClick={() => toggleCollapsed(actividad.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCollapsed(actividad.id);
+                    }}
                     aria-expanded={!isCollapsed}
                     aria-label={isCollapsed ? `Mostrar subactividades de ${actividad.nombre}` : `Ocultar subactividades de ${actividad.nombre}`}
                     className="p-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 shrink-0"
@@ -421,12 +460,31 @@ export function ActividadesPage() {
                     {subtotal.toFixed(1)}% / 100%
                   </span>
                 )}
+                {!finalizada && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddActividad(actividad.id);
+                    }}
+                    aria-label={`Añadir subactividad a ${actividad.nombre}`}
+                    title="Añadir subactividad"
+                    className="sm:hidden inline-flex items-center gap-1 rounded-full bg-emerald-100/90 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold border border-emerald-300/70 dark:border-emerald-400/30 shrink-0 active:scale-95 transition-transform"
+                  >
+                    + Sub
+                  </button>
+                )}
               </div>
               {!finalizada && (
                 <button
-                  onClick={() => handleAddActividad(actividad.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddActividad(actividad.id);
+                  }}
                   aria-label={`Añadir subactividad a ${actividad.nombre}`}
-                  className="absolute left-7 top-full z-10 hidden w-fit items-center gap-1 rounded-b-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black px-2.5 py-1.5 text-xs font-medium text-green-700 dark:text-green-300 shadow-sm hover:text-green-800 dark:hover:text-green-200 hover:underline group-hover:inline-flex group-focus-within:inline-flex"
+                  className={`absolute left-7 top-full z-20 items-center gap-1.5 rounded-b-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-300 shadow-md hover:text-green-800 dark:hover:text-green-200 hover:underline ${
+                    activeActividadId === actividad.id ? 'inline-flex' : 'hidden'
+                  } group-hover:inline-flex group-focus-within:inline-flex`}
                 >
                   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-xs leading-none text-white" aria-hidden="true">
                     +
@@ -571,6 +629,16 @@ export function ActividadesPage() {
   return (
     <div className="space-y-6">
       <ImportHint ctaLabel="Ir a estudiantes" onCta={() => navigate(`/fichas/${fichaId}/estudiantes`)} />
+
+      {/* Pestañas de navegación de la ficha */}
+      <div className="px-4">
+        <FichaNavTabs
+          fichaId={fichaId || ''}
+          activeTab={location.hash === '#calificaciones' ? 'calificaciones' : 'actividades'}
+          fichaNombre={ficha?.nombre}
+          fichaCodigo={ficha?.codigo}
+        />
+      </div>
 
       {/* Encabezado superior: FichaHeaderCard + Tarjeta organizada de resumen (sin tags) */}
       <div className="flex flex-col gap-4 px-4 lg:flex-row lg:items-stretch">

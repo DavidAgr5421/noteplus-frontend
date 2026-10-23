@@ -5,6 +5,7 @@ import { formatDate, claseHorarioLabel } from '@/shared/utils/helpers';
 import { useCalendar, useUpdateClase } from '../hooks/useAsistencias';
 import { useFicha } from '@/features/fichas/hooks/useFichas';
 import { FichaHeaderCard } from '@/features/fichas/components/FichaHeaderCard';
+import { FichaNavTabs } from '@/features/fichas/components/FichaNavTabs';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
 import { ImportHint } from '@/features/importacion';
 
@@ -91,6 +92,16 @@ export function AsistenciasPage() {
   return (
     <div className="space-y-6">
       <ImportHint ctaLabel="Ir a estudiantes" onCta={() => navigate(`/fichas/${fichaId}/estudiantes`)} />
+
+      {/* Navegación y pestañas de la ficha */}
+      <div className="px-4">
+        <FichaNavTabs
+          fichaId={fichaId || ''}
+          activeTab="asistencias"
+          fichaNombre={ficha?.nombre}
+          fichaCodigo={ficha?.codigo}
+        />
+      </div>
 
       <div className="px-4">
         <div className="min-w-0">

@@ -3,11 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button, Input, Modal } from '@/shared/ui';
 import { useClase, useAsistencias, useSaveAsistencias, useUpdateClase } from '../hooks/useAsistencias';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
-import { useEstudiantes } from '../../estudiantes/hooks/useEstudiantes';
+import { useEstudiantes, useCreateEstudiante } from '../../estudiantes/hooks/useEstudiantes';
+import { EstudianteModal } from '../../estudiantes/components/EstudianteForm';
+import { FichaNavTabs } from '@/features/fichas/components/FichaNavTabs';
 import { JustificacionModal } from '../components/AsistenciaComponents';
 import { formatDate, claseHorarioLabel } from '@/shared/utils/helpers';
 import { downloadCSV, downloadXLSX } from '@/features/importacion/lib/export';
-import { TIPOS_IDENTIFICACION } from '../../estudiantes/types';
+import { TIPOS_IDENTIFICACION, type EstudianteFormData } from '../../estudiantes/types';
 import type { AsistenciaFormData } from '../types';
 
 type Estado = 'ASISTIO' | 'NO_ASISTIO';
@@ -50,7 +52,10 @@ export function MarcarAsistenciasPage() {
   const { data: asistenciasPrevias } = useAsistencias(claseId || '');
   const saveAsistencias = useSaveAsistencias();
   const updateClase = useUpdateClase();
+  const createEstudiante = useCreateEstudiante(clase?.fichaId || '');
   const [preguntarRealizada, setPreguntarRealizada] = useState(false);
+  const [modalNuevoEstudiante, setModalNuevoEstudiante] = useState(false);
+  const initializedRef = useRef(false);
 
   function hoyLocal(): string {
     const d = new Date();
@@ -70,18 +75,46 @@ export function MarcarAsistenciasPage() {
 
   useEffect(() => {
     if (!estudiantes) return;
-    const initial: Record<string, AsistenciaFormData> = {};
-    estudiantes.forEach((est) => {
-      const previa = asistenciasPrevias?.find((a) => a.estudianteId === est.id);
-      initial[est.id] = {
-        estudianteId: est.id,
-        estado: previa?.estado || 'ASISTIO',
-        justificacion: previa?.justificacion || '',
-      };
+    setMarcas((prev) => {
+      const next: Record<string, AsistenciaFormData> = {};
+      const yaInicializado = initializedRef.current;
+      estudiantes.forEach((est) => {
+        const existente = prev[est.id];
+        if (yaInicializado && existente) {
+          next[est.id] = existente;
+        } else {
+          const previa = asistenciasPrevias?.find((a) => a.estudianteId === est.id);
+          next[est.id] = {
+            estudianteId: est.id,
+            estado: previa?.estado || 'ASISTIO',
+            justificacion: previa?.justificacion || '',
+          };
+        }
+      });
+      return next;
     });
-    setMarcas(initial);
-    setSaved(false);
+    if (estudiantes && asistenciasPrevias !== undefined) {
+      initializedRef.current = true;
+    }
   }, [estudiantes, asistenciasPrevias]);
+
+  const handleCrearEstudiante = async (data: EstudianteFormData) => {
+    try {
+      const nuevo = await createEstudiante.mutateAsync(data);
+      setMarcas((prev) => ({
+        ...prev,
+        [nuevo.id]: {
+          estudianteId: nuevo.id,
+          estado: 'ASISTIO',
+          justificacion: '',
+        },
+      }));
+      setModalNuevoEstudiante(false);
+      setSaved(false);
+    } catch (err) {
+      console.error('Error al registrar estudiante:', err);
+    }
+  };
 
   const counts = useMemo(() => {
     const lista = Object.values(marcas);
@@ -228,16 +261,25 @@ export function MarcarAsistenciasPage() {
 
   return (
     <div className="space-y-6">
+      {clase.fichaId && (
+        <FichaNavTabs
+          fichaId={clase.fichaId}
+          activeTab="asistencias"
+          fichaNombre={fichaNombre}
+          fichaCodigo={fichaCodigo}
+        />
+      )}
+
       <div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => (clase.fichaId ? navigate(`/fichas/${clase.fichaId}/asistencias`) : navigate(-1))}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 focus:outline-none focus:ring-2 focus:ring-navy-900"
-                aria-label="Volver"
-                title="Volver"
+                aria-label="Volver a asistencias"
+                title="Volver a asistencias de la ficha"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7 7-7M3 12h18" />
@@ -278,7 +320,19 @@ export function MarcarAsistenciasPage() {
               <span>{hayFiltros ? conteoVisible.faltaron : counts.faltaron} no asistieron</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="navy"
+              onClick={() => setModalNuevoEstudiante(true)}
+              className="flex items-center gap-1.5 whitespace-nowrap text-xs sm:text-sm py-1.5 px-3"
+              title="Añadir estudiante rápidamente"
+            >
+              <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <span>+ Añadir estudiante</span>
+            </Button>
             <div className="relative">
               <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
@@ -472,7 +526,12 @@ export function MarcarAsistenciasPage() {
             </tbody>
           </table>
           {(estudiantes || []).length === 0 && (
-            <p className="py-8 text-center text-gray-500 dark:text-slate-400">No hay estudiantes en esta ficha</p>
+            <div className="py-10 text-center space-y-3">
+              <p className="text-gray-500 dark:text-slate-400">No hay estudiantes en esta ficha aún.</p>
+              <Button type="button" variant="navy" onClick={() => setModalNuevoEstudiante(true)}>
+                + Añadir primer estudiante
+              </Button>
+            </div>
           )}
           {(estudiantes || []).length > 0 && visibles.length === 0 && (
             <div className="py-8 text-center">
@@ -630,6 +689,14 @@ export function MarcarAsistenciasPage() {
             [justificando.id]: { ...prev[justificando.id], justificacion },
           }));
         }}
+      />
+
+      <EstudianteModal
+        isOpen={modalNuevoEstudiante}
+        onClose={() => setModalNuevoEstudiante(false)}
+        onSubmit={handleCrearEstudiante}
+        isLoading={createEstudiante.isPending}
+        title="Añadir estudiante a la ficha y marcar asistencia"
       />
     </div>
   );
