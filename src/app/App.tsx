@@ -10,6 +10,7 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { FichasListPage } from '@/features/fichas/pages/FichasListPage';
 import { FichaFormPage } from '@/features/fichas/pages/FichaFormPage';
 import { FichaDetailPage } from '@/features/fichas/pages/FichaDetailPage';
+import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { CalendarPage } from '@/features/asistencias/pages/CalendarPage';
 import { MarcarAsistenciasPage } from '@/features/asistencias/pages/MarcarAsistenciasPage';
 import { AsistenciasPage } from '@/features/asistencias/pages/AsistenciasPage';
@@ -58,7 +59,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/fichas" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/fichas" element={<FichasListPage />} />
         <Route path="/fichas/archivadas" element={<FichasListPage />} />
         <Route path="/fichas/nueva" element={<FichaFormPage />} />
@@ -86,8 +88,8 @@ function AppRoutes() {
         <Route path="/actividades" element={<ActividadesFichasPage />} />
         <Route path="/asistencias" element={<AsistenciasFichasPage />} />
       </Route>
-      <Route path="/" element={<Navigate to="/fichas" replace />} />
-      <Route path="*" element={<Navigate to="/fichas" replace />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

@@ -1,7 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, CardFooter } from '@/shared/ui';
 import { fichaSchema, type Ficha, type FichaFormData, type FichaHorario } from '../types';
 import { getDayName, getShortDayName } from '@/shared/utils/helpers';
 import {
@@ -9,18 +8,6 @@ import {
   findScheduleConflicts,
   type ScheduleConflictData,
 } from './ScheduleConflictAlert';
-
-/** Barra de título de sección: gradiente azul oscuro → transparente de izq. a derecha. */
-function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="rounded-xl px-4 py-2.5"
-      style={{ background: 'linear-gradient(to right, #05233a 0%, transparent 100%)' }}
-    >
-      <h3 className="text-sm font-semibold text-white">{children}</h3>
-    </div>
-  );
-}
 
 export function trimestreDe(fechaInicio: string): string {
   const [year, month] = fechaInicio.split('-').map(Number);
@@ -57,56 +44,77 @@ function toMinutes(t: string): number {
 function formatDuration(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  if (h === 0) return `${m} min`;
-  if (m === 0) return `${h} h`;
-  return `${h} h ${m} min`;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h 00m`;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
-/** Carátula analógica que muestra la hora dada, estilo reloj. */
-function ClockFace({ time, label }: { time: string; label: string }) {
-  const valid = TIME_RE.test(time);
-  const [h, m] = valid ? time.split(':').map(Number) : [0, 0];
-  const minAngle = m * 6;
-  const hourAngle = ((h % 12) + m / 60) * 30;
-  const cx = 50;
-  const cy = 50;
+/** Cálculo automático en vivo de proyección de sesiones */
+function calcularEstimacion(
+  fechaInicioStr: string,
+  totalClases: number,
+  horarios: FichaHorario[]
+): {
+  fechaInicioFormateada: string;
+  fechaFinFormateada: string;
+  diasTexto: string;
+  horarioTexto: string;
+} | null {
+  if (!fechaInicioStr || !totalClases || totalClases <= 0 || horarios.length === 0) {
+    return null;
+  }
 
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 100 100" className="h-28 w-28">
-        <circle cx={cx} cy={cy} r="46" fill="white" stroke="#bfdbfe" strokeWidth="3" />
-        {Array.from({ length: 12 }, (_, i) => {
-          const a = (i * 30 * Math.PI) / 180;
-          const x1 = cx + 38 * Math.sin(a);
-          const y1 = cy - 38 * Math.cos(a);
-          const x2 = cx + 42 * Math.sin(a);
-          const y2 = cy - 42 * Math.cos(a);
-          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#93c5fd" strokeWidth={i % 3 === 0 ? 3 : 1.5} />;
-        })}
-        <line
-          x1={cx}
-          y1={cy}
-          x2={cx + 24 * Math.sin((hourAngle * Math.PI) / 180)}
-          y2={cy - 24 * Math.cos((hourAngle * Math.PI) / 180)}
-          stroke="#1d4ed8"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        <line
-          x1={cx}
-          y1={cy}
-          x2={cx + 34 * Math.sin((minAngle * Math.PI) / 180)}
-          y2={cy - 34 * Math.cos((minAngle * Math.PI) / 180)}
-          stroke="#60a5fa"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-        <circle cx={cx} cy={cy} r="3.5" fill="#1d4ed8" />
-      </svg>
-      <span className="text-xs font-medium text-gray-600 dark:text-slate-400">{label}</span>
-      <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{valid ? time : '--:--'}</span>
-    </div>
-  );
+  const parts = fechaInicioStr.split('-').map(Number);
+  if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+    return null;
+  }
+
+  const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  const scheduledDayNumbers = Array.from(new Set(horarios.map((h) => h.diaSemana)));
+
+  let count = 0;
+  let safety = 0;
+  let finalDate = new Date(d);
+
+  while (safety < 3650) {
+    safety++;
+    if (scheduledDayNumbers.includes(d.getDay())) {
+      count++;
+      finalDate = new Date(d);
+      if (count >= totalClases) break;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+
+  const meses = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  const formatFecha = (dateObj: Date) => {
+    return `${dateObj.getDate()} de ${meses[dateObj.getMonth()]} de ${dateObj.getFullYear()}`;
+  };
+
+  const diasNombres = scheduledDayNumbers
+    .sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
+    .map(getDayName);
+
+  const diasTexto = diasNombres.length === 1
+    ? diasNombres[0]
+    : diasNombres.slice(0, -1).join(', ') + ' y ' + diasNombres[diasNombres.length - 1];
+
+  const primerHorario = horarios[0];
+  const finMinutos = toMinutes(primerHorario.hora) + primerHorario.duracionMinutos;
+  const finH = String(Math.floor(finMinutos / 60)).padStart(2, '0');
+  const finM = String(finMinutos % 60).padStart(2, '0');
+  const horarioTexto = `de ${primerHorario.hora} a ${finH}:${finM}`;
+
+  return {
+    fechaInicioFormateada: formatFecha(new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0)),
+    fechaFinFormateada: formatFecha(finalDate),
+    diasTexto,
+    horarioTexto,
+  };
 }
 
 export function FichaForm({
@@ -118,7 +126,7 @@ export function FichaForm({
   onSubmit,
   onCancel,
   isLoading,
-  submitLabel = 'Guardar',
+  submitLabel = 'Guardar Ficha',
 }: FichaFormProps) {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -135,6 +143,7 @@ export function FichaForm({
 
   const fechaInicio = watch('fechaInicio') ?? '';
   const trimestre = watch('trimestre') ?? '';
+  const totalClases = watch('totalClases') ?? 0;
 
   useEffect(() => {
     if (!trimestre && fechaInicio) {
@@ -158,8 +167,6 @@ export function FichaForm({
     onClearExternalConflict?.();
   };
 
-  const totalClases = watch('totalClases') ?? 0;
-
   const toggleDay = (dia: number) => {
     setSelectedDays((prev) => (prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia]));
   };
@@ -172,11 +179,11 @@ export function FichaForm({
     setScheduleError(null);
     clearConflict();
     if (selectedDays.length === 0) {
-      setScheduleError('Marca al menos un día de la semana.');
+      setScheduleError('Selecciona al menos un día para este horario.');
       return;
     }
     if (!TIME_RE.test(horaInicio) || !TIME_RE.test(horaFin)) {
-      setScheduleError('Las horas deben tener formato HH:MM.');
+      setScheduleError('Las horas deben tener formato válido (HH:MM).');
       return;
     }
     if (duracion <= 0) {
@@ -205,14 +212,11 @@ export function FichaForm({
     setHorarios((prev) => prev.filter((h) => !(h.diaSemana === diaSemana && h.hora === hora)));
   };
 
-  const distinctDays = new Set(horarios.map((h) => h.diaSemana)).size;
-  const estimatedWeeks = distinctDays > 0 && totalClases > 0
-    ? Math.ceil(totalClases / distinctDays)
-    : 0;
+  const estimacion = calcularEstimacion(fechaInicio, totalClases, horarios);
 
   const submit = (data: FormData) => {
     if (horarios.length === 0) {
-      setScheduleError('Agrega al menos un horario de clase.');
+      setScheduleError('Debes agregar al menos un horario de clase para la ficha.');
       return;
     }
     const conflict = findScheduleConflicts(horarios, activeFichas, currentFichaId, accion);
@@ -225,188 +229,401 @@ export function FichaForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-8">
-      <ScheduleConflictAlert conflict={activeConflict} onClose={clearConflict} />
-      {/* Datos de la ficha */}
-      <div>
-        <SectionTitle>Datos de la ficha</SectionTitle>
-        <div className="grid gap-4 pt-4 md:grid-cols-2">
-          <Input
-            label="Nombre de la ficha"
-            placeholder="Ej: Programación de Software"
-            error={errors.nombre?.message}
-            {...register('nombre')}
-          />
-          <Input
-            label="Código de la ficha"
-            placeholder="Ej: 123456"
-            error={errors.codigo?.message}
-            {...register('codigo')}
-          />
-          <Input
-            label="Fecha de inicio"
-            type="date"
-            error={errors.fechaInicio?.message}
-            {...register('fechaInicio')}
-          />
-          <Input
-            label="Trimestre"
-            placeholder="Ej: T2 2026"
-            error={errors.trimestre?.message}
-            {...register('trimestre')}
-          />
-          <Input
-            label="Nota mínima de aprobación"
-            type="number"
-            step="0.1"
-            min="0"
-            max="5"
-            error={errors.notaMinimaAprobacion?.message}
-            {...register('notaMinimaAprobacion', { valueAsNumber: true })}
-          />
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto bg-white dark:bg-[#0B192C] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-up">
+      <form onSubmit={handleSubmit(submit)} className="space-y-8 divide-y divide-slate-200 dark:divide-slate-800">
+        <ScheduleConflictAlert conflict={activeConflict} onClose={clearConflict} />
 
-      <div aria-hidden="true" className="h-px bg-gray-200 dark:bg-white/10" />
-
-      {/* Horario */}
-      <div>
-        <SectionTitle>Horario de clases</SectionTitle>
-        <p className="pt-3 text-center text-sm text-gray-500 dark:text-slate-400 mb-3">
-          Marca los días, elige de qué hora a qué hora es la clase y agrégalo al horario.
-        </p>
-
-        {/* Días estilo reloj de Android */}
-        <span className="block text-center text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Días de clase</span>
-        <div className="flex justify-center gap-2 mb-5" role="group" aria-label="Días de clase">
-          {WEEK_DAYS.map((dia) => {
-            const active = selectedDays.includes(dia);
-            return (
-              <button
-                key={dia}
-                type="button"
-                onClick={() => toggleDay(dia)}
-                aria-pressed={active}
-                title={getDayName(dia)}
-                className={`h-11 w-11 rounded-full text-sm font-semibold transition-colors ${
-                  active
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-white/15'
-                }`}
-              >
-                {getShortDayName(dia).charAt(0)}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Reloj: de qué hora a qué hora */}
-        <span className="block text-center text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Hora de la clase</span>
-        <div className="mx-auto flex w-fit max-w-full flex-col sm:flex-row items-center gap-6 rounded-2xl border border-blue-100 dark:border-blue-400/20 bg-blue-50/50 dark:bg-blue-500/10 p-4">
-          <ClockFace time={horaInicio} label="Inicio" />
-          <div className="flex sm:flex-col items-center gap-2">
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1" htmlFor="hora-inicio">
-                De
-              </label>
-              <input
-                id="hora-inicio"
-                type="time"
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-                className="w-full rounded-full border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none dark:text-slate-100"
-              />
-            </div>
-            <span className="text-gray-400 dark:text-slate-500 font-bold">→</span>
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1" htmlFor="hora-fin">
-                A
-              </label>
-              <input
-                id="hora-fin"
-                type="time"
-                value={horaFin}
-                onChange={(e) => setHoraFin(e.target.value)}
-                className="w-full rounded-full border border-gray-300 dark:border-white/15 bg-white dark:bg-slate-950 px-4 py-2 text-center text-lg font-semibold tabular-nums focus:border-blue-500 focus:outline-none dark:text-slate-100"
-              />
-            </div>
-          </div>
-          <ClockFace time={horaFin} label="Fin" />
-          <div className="text-center sm:text-left">
-            <p className="text-sm text-gray-600 dark:text-slate-400">Duración por clase</p>
-            <p className="text-xl font-bold text-navy-900 dark:text-emerald-300">
-              {duracion > 0 ? formatDuration(duracion) : '—'}
+        {/* ========================================================
+            SECCIÓN 1: INFORMACIÓN ACADÉMICA
+        ======================================================== */}
+        <section className="space-y-5">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <svg className="h-4 w-4 text-[#00875A] dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              <span>Información Académica</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+              Identificación oficial del programa y parámetros base de calificación.
             </p>
           </div>
-        </div>
 
-        <div className="mt-3 flex flex-col items-center">
-          <Button type="button" variant="outline" size="sm" onClick={addHorario}>
-            + Agregar horario
-          </Button>
-          {scheduleError && (
-            <p className="mt-2 text-center text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">{scheduleError}</p>
-          )}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Nombre del Programa / Ficha (2/3 de ancho) */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-nombre">
+                Nombre del Programa / Ficha
+              </label>
+              <input
+                id="field-nombre"
+                type="text"
+                placeholder="Ej. Análisis y Desarrollo de Software"
+                className="w-full rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                {...register('nombre')}
+              />
+              {errors.nombre && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.nombre.message}
+                </p>
+              )}
+            </div>
 
-        {/* Horarios agregados */}
-        {horarios.length > 0 && (
-          <ul className="mx-auto mt-4 max-w-xl divide-y divide-slate-100 dark:divide-white/10 rounded-2xl border border-slate-200/60 dark:border-white/10 bg-white dark:bg-slate-900">
-            {horarios.map((h) => (
-              <li key={`${h.diaSemana}-${h.hora}`} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-emerald-400">
-                  {getShortDayName(h.diaSemana).charAt(0)}
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">{getDayName(h.diaSemana)}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                    {h.hora} – {formatDuration(h.duracionMinutos)} por clase
-                  </p>
+            {/* Código de Ficha (1/3 de ancho) */}
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-codigo">
+                Código de Ficha
+              </label>
+              <input
+                id="field-codigo"
+                type="text"
+                placeholder="Ej. 3573371"
+                className="w-full rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                {...register('codigo')}
+              />
+              {errors.codigo && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.codigo.message}
+                </p>
+              )}
+            </div>
+
+            {/* Fecha de Inicio */}
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-fechaInicio">
+                Fecha de Inicio
+              </label>
+              <div className="relative">
+                <input
+                  id="field-fechaInicio"
+                  type="date"
+                  className="w-full rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                  {...register('fechaInicio')}
+                />
+              </div>
+              {errors.fechaInicio && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.fechaInicio.message}
+                </p>
+              )}
+            </div>
+
+            {/* Trimestre */}
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-trimestre">
+                Trimestre
+              </label>
+              <input
+                id="field-trimestre"
+                type="text"
+                placeholder="Ej. T4 2026"
+                className="w-full rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                {...register('trimestre')}
+              />
+              {errors.trimestre && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.trimestre.message}
+                </p>
+              )}
+            </div>
+
+            {/* Nota Mínima de Aprobación */}
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-notaMinima">
+                Nota Mínima
+              </label>
+              <input
+                id="field-notaMinima"
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                placeholder="3.0"
+                className="w-full text-center font-semibold rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                {...register('notaMinimaAprobacion', { valueAsNumber: true })}
+              />
+              {errors.notaMinimaAprobacion && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.notaMinimaAprobacion.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================
+            SECCIÓN 2: CONFIGURACIÓN DE HORARIOS Y DÍAS
+        ======================================================== */}
+        <section className="pt-8 space-y-5">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <svg className="h-4 w-4 text-[#00875A] dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Horarios y Días de Formación</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+              Define los días de la semana y los rangos de tiempo de las clases.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {/* Selector de Días */}
+            <div>
+              <span className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                Días de Clase
+              </span>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Días de clase">
+                {WEEK_DAYS.map((dia) => {
+                  const active = selectedDays.includes(dia);
+                  return (
+                    <button
+                      key={dia}
+                      type="button"
+                      onClick={() => toggleDay(dia)}
+                      aria-pressed={active}
+                      title={getDayName(dia)}
+                      className={`h-10 w-10 sm:h-11 sm:w-11 rounded-lg text-sm font-semibold transition-all border ${
+                        active
+                          ? 'bg-[#0B192C] text-white border-[#0B192C] dark:bg-emerald-600 dark:border-emerald-600 shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {getShortDayName(dia).charAt(0)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selector de Rango de Hora Técnico y Compacto (Sin relojes analógicos) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+              {/* Hora Inicio */}
+              <div className="flex-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1" htmlFor="input-hora-inicio">
+                  Hora de Inicio
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="input-hora-inicio"
+                    type="time"
+                    value={horaInicio}
+                    onChange={(e) => setHoraInicio(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm font-semibold tabular-nums rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                  />
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeHorario(h.diaSemana, h.hora)}
-                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                  aria-label={`Quitar horario del ${getDayName(h.diaSemana)}`}
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              </div>
 
-      <div aria-hidden="true" className="h-px bg-gray-200 dark:bg-white/10" />
+              {/* Flecha divisoria */}
+              <div className="hidden sm:flex items-center justify-center pt-5 text-slate-400 dark:text-slate-500">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
 
-      {/* Cantidad de clases */}
-      <div>
-        <SectionTitle>Cantidad de clases</SectionTitle>
-        <div className="mx-auto max-w-xs pt-4">
-          <Input
-            label="Días con clase en total"
-            type="number"
-            min="1"
-            error={errors.totalClases?.message}
-            {...register('totalClases', { valueAsNumber: true })}
-          />
+              {/* Hora Fin */}
+              <div className="flex-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1" htmlFor="input-hora-fin">
+                  Hora de Fin
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="input-hora-fin"
+                    type="time"
+                    value={horaFin}
+                    onChange={(e) => setHoraFin(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm font-semibold tabular-nums rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Badge cálculo automático de duración */}
+              <div className="sm:self-end sm:mb-0.5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/80 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-2xs whitespace-nowrap">
+                  <span className="text-slate-400">Duración:</span>
+                  <span className="font-semibold text-slate-900 dark:text-emerald-400 tabular-nums">
+                    {duracion > 0 ? formatDuration(duracion) : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Botón "+ Agregar otro horario / día" con borde punteado */}
+            <button
+              type="button"
+              onClick={addHorario}
+              className="border border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-800 dark:hover:border-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/40 text-slate-700 dark:text-slate-300 text-xs font-semibold py-2.5 rounded-lg w-full flex items-center justify-center gap-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            >
+              <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>Agregar este horario a la ficha</span>
+            </button>
+
+            {scheduleError && (
+              <p className="text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                {scheduleError}
+              </p>
+            )}
+
+            {/* Lista de Horarios Agregados */}
+            {horarios.length > 0 && (
+              <div className="pt-2">
+                <span className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                  Horarios Configurados ({horarios.length})
+                </span>
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 overflow-hidden">
+                  {horarios.map((h) => {
+                    const startMin = toMinutes(h.hora);
+                    const endMin = startMin + h.duracionMinutos;
+                    const endH = String(Math.floor(endMin / 60)).padStart(2, '0');
+                    const endM = String(endMin % 60).padStart(2, '0');
+
+                    return (
+                      <li key={`${h.diaSemana}-${h.hora}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-white dark:hover:bg-slate-900/80 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#0B192C] text-xs font-bold text-emerald-400 border border-slate-800">
+                            {getShortDayName(h.diaSemana).charAt(0)}
+                          </span>
+                          <div>
+                            <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {getDayName(h.diaSemana)}
+                            </span>
+                            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                              {h.hora} – {endH}:{endM} ({formatDuration(h.duracionMinutos)})
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeHorario(h.diaSemana, h.hora)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                          aria-label={`Quitar horario del ${getDayName(h.diaSemana)}`}
+                          title="Eliminar horario"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ========================================================
+            SECCIÓN 3: CÁLCULO DE CLASES Y ESTIMACIÓN DE SESIONES
+        ======================================================== */}
+        <section className="pt-8 space-y-5">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <svg className="h-4 w-4 text-[#00875A] dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              <span>Planificación de Sesiones y Estimación</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+              Configura el número previsto de clases para calcular automáticamente el calendario.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5" htmlFor="field-totalClases">
+                Total de Sesiones Planificadas
+              </label>
+              <div className="relative">
+                <input
+                  id="field-totalClases"
+                  type="number"
+                  min="1"
+                  placeholder="10"
+                  className="w-full rounded-lg bg-slate-50/50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm px-3.5 py-2.5 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                  {...register('totalClases', { valueAsNumber: true })}
+                />
+              </div>
+              {errors.totalClases && (
+                <p className="mt-1 text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+                  {errors.totalClases.message}
+                </p>
+              )}
+            </div>
+
+            {/* Panel de Previsualización Dinámico Compacto */}
+            <div className="md:col-span-2">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Proyección de Calendario en Vivo
+                    </p>
+                    {estimacion ? (
+                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Se generarán <span className="font-semibold text-slate-900 dark:text-white">{totalClases} clases</span> entre el{' '}
+                        <span className="font-semibold text-slate-900 dark:text-white">{estimacion.fechaInicioFormateada}</span> y el{' '}
+                        <span className="font-semibold text-slate-900 dark:text-white">{estimacion.fechaFinFormateada}</span>, los días{' '}
+                        <span className="font-semibold text-slate-900 dark:text-white">{estimacion.diasTexto}</span> {estimacion.horarioTexto}.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Ingresa la fecha de inicio, horarios y total de sesiones para calcular la duración y fecha final del período académico.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================
+            FOOTER: PIE DE ACCIONES
+        ======================================================== */}
+        <div className="pt-6 flex items-center justify-end gap-3">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+            >
+              Cancelar
+            </button>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold shadow-xs bg-[#00875A] hover:bg-[#007048] active:bg-[#005e3c] text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          >
+            {isLoading && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            )}
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            <span>{submitLabel}</span>
+          </button>
         </div>
-        {estimatedWeeks > 0 && distinctDays > 0 && (
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-slate-400">
-            {distinctDays} {distinctDays === 1 ? 'día' : 'días'} por semana × {totalClases} clases
-            ≈ {estimatedWeeks} {estimatedWeeks === 1 ? 'semana' : 'semanas'} de clase.
-          </p>
-        )}
-      </div>
-
-      <CardFooter className="justify-end">
-        {onCancel && <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>}
-        <Button type="submit" variant="navyGreen" loading={isLoading}>{submitLabel}</Button>
-      </CardFooter>
-    </form>
+      </form>
+    </div>
   );
 }

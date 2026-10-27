@@ -8,7 +8,8 @@ import { useModoOscuro } from '@/shared/hooks/useModoOscuro';
 import logoNavbarLight from '@/assets/logo_noteplus_navbar_light.png';
 
 const NAV_LINKS: { to: string; label: string; end?: boolean }[] = [
-  { to: '/fichas', label: 'Inicio', end: true },
+  { to: '/dashboard', label: 'Inicio', end: true },
+  { to: '/fichas', label: 'Fichas' },
   { to: '/calendario', label: 'Calendario' },
   { to: '/actividades', label: 'Actividades' },
   { to: '/asistencias', label: 'Asistencias' },
@@ -26,6 +27,10 @@ const TIPO_ICON: Record<NotificacionTipo, { bg: string; path: string }> = {
   ficha_culminada: {
     bg: 'bg-navy-900',
     path: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  riesgo_desercion: {
+    bg: 'bg-[#a16074]',
+    path: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
   },
 };
 
@@ -107,7 +112,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-navy-950 shadow-lg shadow-navy-950/40 dark:bg-black dark:border-b dark:border-white/10 dark:shadow-black/70">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:px-6 md:h-16 md:flex-nowrap md:gap-x-5 md:py-0 lg:px-8">
-        <NavLink to="/fichas" className="order-1 shrink-0" aria-label="NotePlus, ir al inicio">
+        <NavLink to="/dashboard" className="order-1 shrink-0" aria-label="NotePlus, ir al inicio">
           <img
             src={logoNavbarLight}
             alt="NotePlus"
@@ -238,7 +243,7 @@ export function Navbar() {
         </div>
 
         <nav
-          className="scrollbar-thin order-3 -mx-1 flex w-full min-w-0 items-center gap-1 overflow-x-auto px-1 pb-1 md:order-2 md:mx-0 md:w-auto md:flex-1 md:px-0 md:pb-0"
+          className="scrollbar-thin order-3 -mx-1 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto px-1 pb-1 md:order-2 md:mx-0 md:w-auto md:flex-1 md:px-0 md:pb-0"
           aria-label="Navegación principal"
         >
           {NAV_LINKS.map((link) => (
@@ -248,10 +253,10 @@ export function Navbar() {
               end={link.end}
               className={({ isActive }) =>
                 classNames(
-                  'shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors',
+                  'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-all duration-150',
                   isActive
-                    ? 'bg-white/15 text-white dark:bg-white/12 dark:text-emerald-400'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
+                    ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40 shadow-xs dark:bg-emerald-400/15 dark:text-emerald-400 dark:ring-emerald-400/30'
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
                 )
               }
             >

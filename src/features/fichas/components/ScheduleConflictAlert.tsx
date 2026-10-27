@@ -272,9 +272,6 @@ export function ScheduleConflictAlert({ conflict, onClose, showModal = true }: S
           onClose={onClose}
           title={title}
           size="md"
-          headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-          titleClassName="text-base font-semibold text-white"
-          closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
         >
           {content}
           <div className="mt-6 flex justify-end">

@@ -46,9 +46,6 @@ export function ClaseDetailModal({ isOpen, onClose, clase, onMarcarAsistencias }
       isOpen={isOpen}
       onClose={onClose}
       title={formatDate(clase.fecha, 'long')}
-      headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-      titleClassName="text-lg font-semibold capitalize text-white"
-      closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
     >
       <div className="space-y-4">
         <div>
@@ -119,9 +116,6 @@ export function JustificacionModal({ isOpen, estudianteNombre, initialValue, onC
       isOpen={isOpen}
       onClose={onClose}
       title="Justificación"
-      headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-      titleClassName="text-lg font-semibold text-white"
-      closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
     >
       <p className="text-xl font-bold text-gray-900 dark:text-white">{estudianteNombre}</p>
       <label className="mt-3 block text-sm font-medium text-gray-700 dark:text-slate-300" htmlFor="justificacion-text">
@@ -284,11 +278,11 @@ export function AsistenciaModal({ isOpen, onClose, clase, asistencias, estudiant
       <div className="overflow-x-auto max-h-96">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200 dark:border-white/10">
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Estudiante</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Identificación</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Estado</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-slate-400">Justificación</th>
+            <tr className="bg-[#0B192C] border-b border-[#172a45]">
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Estudiante</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Identificación</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Estado</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-emerald-400">Justificación</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/10">

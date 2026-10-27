@@ -93,9 +93,6 @@ export function ExportDialog({ isOpen, onClose, fichaId, fichaCodigo, initialDat
       onClose={onClose}
       title="Exportar"
       size="sm"
-      headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-      titleClassName="text-lg font-semibold text-white"
-      closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
     >
       <div className="space-y-4">
         <div>

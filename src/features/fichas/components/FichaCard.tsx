@@ -1,6 +1,7 @@
+import { useState, useRef, useEffect } from 'react';
 import type { Ficha } from '../types';
 import { useFormatoHora } from '@/shared/hooks/useFormatoHora';
-import { formatHora, getShortDayName, type FormatoHoraOption } from '@/shared/utils/helpers';
+import { formatHora, getShortDayName } from '@/shared/utils/helpers';
 
 interface FichaCardProps {
   ficha: Ficha;
@@ -13,99 +14,37 @@ interface FichaCardProps {
   isArchived?: boolean;
 }
 
-function ClockIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-      />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-      />
-    </svg>
-  );
-}
-
-function BookOpenIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-      />
-    </svg>
-  );
-}
-
-function ActionIcon({ d }: { d: string }) {
-  return (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.9}
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
-    </svg>
-  );
-}
-
-const TRASH_PATH = 'M3 6h18M8 6V4.5A1.5 1.5 0 019.5 3h5A1.5 1.5 0 0116 4.5V6m-11 0l1 13.1A1.9 1.9 0 006.9 21h10.2a1.9 1.9 0 001.89-1.9L20 6M10 10.5v6M14 10.5v6';
-const PENCIL_PATH = 'M4 20h4L19.5 8.5a2.12 2.12 0 00-3-3L5 17v3zM14.5 6.5l3 3M13 20h7';
-const FINALIZE_PATH = 'M5 12.5l4.5 4.5L19 7';
-const REOPEN_PATH = 'M20 12a8 8 0 11-2.34-5.66M20 4.5V10h-5.5';
-const ARCHIVE_PATH = 'M4 8.5h16V19a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19V8.5zM4 8.5L5.6 5h12.8L20 8.5M10 12.5h4';
-const UNARCHIVE_PATH = 'M4 8.5h16V19a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19V8.5zM4 8.5L5.6 5h12.8L20 8.5M12 17.5v-5.5M9.5 14.5L12 12l2.5 2.5';
-
-function horarioResumen(ficha: Ficha, formato: FormatoHoraOption): string {
+function horarioResumenTexto(ficha: Ficha, formato: '12h' | '24h'): string {
   const horarios = [...(ficha.horarios ?? [])].sort(
     (a, b) => a.diaSemana - b.diaSemana || a.hora.localeCompare(b.hora)
   );
-  if (horarios.length === 0) return 'Sin horario programado';
+  if (horarios.length === 0) return 'Sin horario';
 
-  const partes = horarios.map((h) => `${getShortDayName(h.diaSemana)} ${formatHora(h.hora, formato)}`);
-  const max = 2;
-  if (partes.length > max) {
-    return `${partes.slice(0, max).join(' · ')} +${partes.length - max}`;
-  }
+  const partes = horarios.map((h) => {
+    const dia = getShortDayName(h.diaSemana);
+    const hora = formatHora(h.hora, formato);
+    return `${dia} ${hora}`;
+  });
+
   return partes.join(' · ');
 }
 
-function trimestreDe(ficha: Ficha): string {
-  if (ficha.trimestre?.trim()) return ficha.trimestre;
+function trimestreTexto(ficha: Ficha): string {
+  if (ficha.trimestre?.trim()) {
+    const t = ficha.trimestre.trim();
+    return t.startsWith('T') ? `T${t.substring(1)}` : t;
+  }
   const [year, month] = ficha.fechaInicio.split('-').map(Number);
-  if (!year || !month) return '—';
+  if (!year || !month) return 'T?';
   return `T${Math.ceil(month / 3)} ${year}`;
+}
+
+function programaDescripcion(nombre: string): string {
+  const n = nombre.toUpperCase().trim();
+  if (n === 'AA') return 'Análisis Administrativo';
+  if (n === 'ADSO') return 'Análisis y Desarrollo de Software';
+  if (n === 'CGSIG') return 'Gestión y Seguridad de la Información';
+  return 'Formación Académica';
 }
 
 export function FichaCard({
@@ -120,6 +59,33 @@ export function FichaCard({
 }: FichaCardProps) {
   const isFinalizada = ficha.finalizada;
   const { formato } = useFormatoHora();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuAbierto(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [menuAbierto]);
+
+  // Cálculo de progreso de clases
+  const total = ficha.totalClases || 1;
+  const restantes = ficha.clasesRestantes ?? ficha.totalClases;
+  const realizadas = Math.max(0, total - restantes);
+  const porcentaje = Math.min(100, Math.max(0, Math.round((realizadas / total) * 100)));
 
   return (
     <div
@@ -132,155 +98,175 @@ export function FichaCard({
           onClick?.();
         }
       }}
-      className="group relative flex flex-col justify-between rounded-2xl bg-white/95 dark:bg-slate-900/95 p-4 sm:p-4.5 shadow-xs hover:shadow-md hover:-translate-y-0.5 border border-slate-200/70 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/25 transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-navy-900/30"
+      className={`group relative flex flex-col justify-between rounded-xl bg-white p-3.5 shadow-2xs transition-all duration-200 hover:shadow-md hover:border-slate-300 dark:bg-black dark:border-white/15 dark:hover:border-white/30 border border-slate-200/90 border-l-4 ${
+        isArchived
+          ? 'border-l-slate-400'
+          : isFinalizada
+          ? 'border-l-emerald-600'
+          : 'border-l-emerald-500'
+      } cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/30`}
     >
       <div>
-        {/* Top bar: Indicator + Nombre de la ficha + Código + Quick actions */}
+        {/* Cabecera Compacta en 1 sola fila */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                isArchived
-                  ? 'bg-slate-400'
-                  : isFinalizada
-                  ? 'bg-emerald-600'
-                  : 'bg-emerald-500'
-              }`}
-              aria-hidden="true"
-            />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-navy-900 dark:group-hover:text-emerald-400 transition-colors truncate leading-snug">
+            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300 shrink-0">
+              #{ficha.codigo}
+            </span>
+            {/* El acrónimo nunca se corta (shrink-0) */}
+            <h3 className="shrink-0 font-bold text-sm text-slate-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400 transition-colors">
               {ficha.nombre}
             </h3>
-            <span className="shrink-0 rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:text-slate-200">
-              {ficha.codigo}
+            {/* Solo la descripción secundaria aplica truncate si falta espacio */}
+            <span className="text-xs text-slate-400 dark:text-slate-500 truncate min-w-0 hidden sm:inline">
+              · {programaDescripcion(ficha.nombre)}
             </span>
+            {(isArchived || isFinalizada) && (
+              <span
+                className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold shrink-0 ${
+                  isArchived
+                    ? 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400'
+                    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                }`}
+              >
+                {isArchived ? 'Archivada' : 'Finalizada'}
+              </span>
+            )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1">
-            {onEdit && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 dark:hover:bg-white/10 dark:hover:text-slate-100"
-                aria-label={`Editar ficha ${ficha.nombre}`}
-                title="Editar ficha"
+          {/* Menú contextual de tres puntos (···) */}
+          <div className="relative shrink-0" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuAbierto((prev) => !prev);
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white focus:outline-none"
+              aria-label="Opciones de la ficha"
+              title="Opciones"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+
+            {menuAbierto && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-white/15 dark:bg-black"
               >
-                <ActionIcon d={PENCIL_PATH} />
-              </button>
-            )}
-            {onDelete && !ficha.finalizada && !isArchived && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[#a16074] hover:bg-[#a16074]/10 hover:text-[#8e5063] transition-colors focus:outline-none focus:ring-2 focus:ring-[#a16074]/30"
-                aria-label={`Eliminar ficha ${ficha.nombre}`}
-                title="Eliminar ficha"
-              >
-                <ActionIcon d={TRASH_PATH} />
-              </button>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAbierto(false);
+                      onEdit();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/10 text-left font-medium"
+                  >
+                    <span>Editar ficha</span>
+                  </button>
+                )}
+
+                {!isArchived && !isFinalizada && onFinalize && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAbierto(false);
+                      onFinalize();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-emerald-700 hover:bg-slate-50 dark:text-emerald-400 dark:hover:bg-white/10 text-left font-medium"
+                  >
+                    <span>Finalizar ficha</span>
+                  </button>
+                )}
+
+                {isFinalizada && !isArchived && onReopen && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAbierto(false);
+                      onReopen();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-blue-700 hover:bg-slate-50 dark:text-blue-400 dark:hover:bg-white/10 text-left font-medium"
+                  >
+                    <span>Reabrir ficha</span>
+                  </button>
+                )}
+
+                {onArchive && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAbierto(false);
+                      onArchive();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/10 text-left font-medium"
+                  >
+                    <span>{isArchived ? 'Desarchivar' : 'Archivar'}</span>
+                  </button>
+                )}
+
+                {onDelete && !ficha.finalizada && !isArchived && (
+                  <>
+                    <div className="my-1 border-t border-slate-100 dark:border-white/10" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuAbierto(false);
+                        onDelete();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10 text-left font-semibold"
+                    >
+                      <span>Eliminar ficha</span>
+                    </button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Status badges only if archived or finalized */}
-        {(isArchived || isFinalizada) && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {isArchived && (
-              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                Archivada
-              </span>
-            )}
-            {isFinalizada && (
-              <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-400/20 px-2 py-0.5 text-[11px] font-medium">
-                Finalizada
-              </span>
-            )}
-          </div>
-        )}
+        {/* Cuerpo Condensado en 2 filas */}
+        {/* Fila 1: Horario · Aprendices · Trimestre */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <span className="font-medium text-slate-800 dark:text-slate-200">
+            {horarioResumenTexto(ficha, formato)}
+          </span>
+          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <span>{ficha.numeroEstudiantes ?? 0} estudiantes</span>
+          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <span className="text-slate-500 dark:text-slate-400">{trimestreTexto(ficha)}</span>
+        </div>
 
-        {/* Metadata grid in compact mosaic items: Horario, N° estudiantes, Trimestre, Clases restantes */}
-        <div className="mt-3.5 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-1.5 min-w-0" title={horarioResumen(ficha, formato)}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
-              <ClockIcon />
-            </span>
-            <span className="truncate font-medium">{horarioResumen(ficha, formato)}</span>
+        {/* Fila 2: Barra de progreso lineal delgada con progreso */}
+        <div className="mt-2.5 flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+              style={{ width: `${porcentaje}%` }}
+            />
           </div>
-
-          <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.numeroEstudiantes ?? 0} estudiantes`}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
-              <UsersIcon />
-            </span>
-            <span className="truncate font-medium text-slate-700 dark:text-slate-200">
-              {ficha.numeroEstudiantes ?? 0} estudiantes
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 min-w-0" title={trimestreDe(ficha)}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
-              <CalendarIcon />
-            </span>
-            <span className="truncate font-medium text-slate-700 dark:text-slate-200">{trimestreDe(ficha)}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 min-w-0" title={`${ficha.clasesRestantes ?? ficha.totalClases} clases restantes`}>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
-              <BookOpenIcon />
-            </span>
-            <span className="truncate font-medium text-slate-700 dark:text-slate-200">
-              {ficha.clasesRestantes ?? ficha.totalClases} clases rest.
-            </span>
-          </div>
+          <span className="font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+            {realizadas}/{total} sesiones · {porcentaje}%
+          </span>
         </div>
       </div>
 
-      {/* Footer bar with actions */}
-      <div className="mt-4 pt-3 border-t border-slate-100/90 dark:border-white/10 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-          Ver detalles →
+      {/* Pie integrado con botón Gestionar → */}
+      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+          {restantes} clases restantes
         </span>
-
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          {!isArchived && !isFinalizada && onFinalize && (
-            <button
-              type="button"
-              onClick={onFinalize}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
-              aria-label="Finalizar ficha"
-              title="Finalizar ficha"
-            >
-              <ActionIcon d={FINALIZE_PATH} />
-            </button>
-          )}
-          {isFinalizada && !isArchived && onReopen && (
-            <button
-              type="button"
-              onClick={onReopen}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
-              aria-label="Reabrir ficha"
-              title="Reabrir ficha"
-            >
-              <ActionIcon d={REOPEN_PATH} />
-            </button>
-          )}
-          {onArchive && (
-            <button
-              type="button"
-              onClick={onArchive}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
-              aria-label={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
-              title={isArchived ? 'Desarchivar ficha' : 'Archivar ficha'}
-            >
-              <ActionIcon d={isArchived ? UNARCHIVE_PATH : ARCHIVE_PATH} />
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={onClick}
+          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition-all hover:bg-[#0B192C] hover:text-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-emerald-600 dark:hover:text-white"
+        >
+          <span>{isArchived ? 'Consultar' : 'Gestionar'}</span>
+          <span>→</span>
+        </button>
       </div>
     </div>
   );

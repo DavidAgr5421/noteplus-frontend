@@ -31,4 +31,6 @@ export interface Estudiante {
   tipoIdentificacion: string;
   email: string | null;
   contacto: string | null;
+  totalFallas?: number;
+  fallasInjustificadas?: number;
 }

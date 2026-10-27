@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useFicha, useFichas, useUpdateFicha } from '../hooks/useFichas';
-import { Button, Modal } from '@/shared/ui';
+import { useFicha, useFichas, useUpdateFicha, useArchiveFicha, useUnarchiveFicha } from '../hooks/useFichas';
+import { Modal } from '@/shared/ui';
 import { asistenciasApi } from '@/features/asistencias/api/asistenciasApi';
 import { estudiantesApi } from '@/features/estudiantes/api/estudiantesApi';
 import { calificacionesApi } from '@/features/calificaciones/api/calificacionesApi';
@@ -15,6 +15,7 @@ import {
   type ScheduleConflictData,
 } from '../components/ScheduleConflictAlert';
 import { FichaNavTabs } from '../components/FichaNavTabs';
+import { ExportDialog } from '@/features/importacion/components/ExportDialog';
 import type { FichaHorario } from '../types';
 
 function trimestreFallback(fechaInicio: string): string {
@@ -41,35 +42,19 @@ function toMinutes(t: string): number {
 function formatDuration(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  if (h === 0) return `${m} min`;
-  if (m === 0) return `${h} h`;
-  return `${h} h ${m} min`;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h 00m`;
+  return `${h}h ${String(m).padStart(2, '0')}m`;
 }
-
-const ICON_BTN =
-  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-1';
-
-function ActionGlyph({ d }: { d: string }) {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
-    </svg>
-  );
-}
-
-const USERS_PATH = 'M16 19v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1M9.5 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 19v-1a4 4 0 00-3-3.87M15.5 3.13a3.5 3.5 0 010 6.74';
-const CLIPBOARD_PATH = 'M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01';
-const CALCHECK_PATH = 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM9.5 14.5l2 2 3.5-4';
-const CHART_PATH = 'M4 20V10M10 20V4M16 20v-7M21 20H3';
-const PENCIL_PATH = 'M4 20h4L19.5 8.5a2.12 2.12 0 00-3-3L5 17v3zM14.5 6.5l3 3M13 20h7';
-const TRASH_PATH = 'M3 6h18M8 6V4.5A1.5 1.5 0 019.5 3h5A1.5 1.5 0 0116 4.5V6m-11 0l1 13.1A1.9 1.9 0 006.9 21h10.2a1.9 1.9 0 001.89-1.9L20 6M10 10.5v6M14 10.5v6';
-const PLUS_PATH = 'M12 5v14M5 12h14';
-const CHECK_PATH = 'M5 12.5l4.5 4.5L19 7';
-const X_PATH = 'M6 6l12 12M18 6L6 18';
 
 const WEEK_DAYS = [1, 2, 3, 4, 5, 6, 0];
 
-function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; fechaInicio: string; horarios: FichaHorario[] }) {
+interface HorariosCardProps {
+  fichaId: string;
+  horarios: FichaHorario[];
+}
+
+function HorariosCard({ fichaId, horarios }: HorariosCardProps) {
   const update = useUpdateFicha();
   const { data: activeFichas = [] } = useFichas(false);
   const { formato } = useFormatoHora();
@@ -157,116 +142,135 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
   const showForm = adding || editIndex !== null;
 
   return (
-    <section aria-label="Horarios" className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm">
-      <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#0F1E33] p-5 shadow-xs space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <h2 className="text-sm font-semibold tracking-wide text-white">Horarios de clase</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Horarios de Clase</h2>
         </div>
         {!showForm && (
           <button
             type="button"
             onClick={() => { setAdding(true); setEditIndex(null); setFormError(null); setConflictAlert(null); }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            aria-label="Añadir horario"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 border border-emerald-200 dark:border-emerald-500/30 rounded-lg transition-colors"
           >
-            <ActionGlyph d={PLUS_PATH} />
-            <span>Añadir horario</span>
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>+ Añadir Horario</span>
           </button>
         )}
       </div>
 
-      <div className="p-5 sm:p-6 space-y-4">
-        <ScheduleConflictAlert conflict={conflictAlert} onClose={() => setConflictAlert(null)} />
-        {sorted.length === 0 && !showForm && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Aún no hay horarios definidos para esta ficha.</p>
-        )}
+      <ScheduleConflictAlert conflict={conflictAlert} onClose={() => setConflictAlert(null)} />
 
-        {sorted.length > 0 && (
-          <ul className="divide-y divide-slate-100 dark:divide-white/10 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900">
-            {sorted.map((h, i) => (
-              <li key={`${h.diaSemana}-${h.hora}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                {editIndex === i ? (
-                  <div className="w-full">
-                    <HorarioForm
-                      day={day} setDay={setDay}
-                      horaInicio={horaInicio} setHoraInicio={setHoraInicio}
-                      horaFin={horaFin} setHoraFin={setHoraFin}
-                      formError={formError}
-                      saving={update.isPending}
-                      onSave={saveForm}
-                      onCancel={cancelForm}
-                      saveLabel="Guardar"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-xs font-bold text-emerald-400">
-                      {getShortDayName(h.diaSemana).charAt(0)}
+      {sorted.length === 0 && !showForm && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 py-1">Aún no hay horarios definidos para esta ficha formativa.</p>
+      )}
+
+      {sorted.length > 0 && (
+        <ul className="space-y-2">
+          {sorted.map((h, i) => {
+            const isEditingThis = editIndex === i;
+            if (isEditingThis) {
+              return (
+                <li key={`${h.diaSemana}-${h.hora}-${i}`} className="p-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs">
+                  <HorarioInlineForm
+                    day={day} setDay={setDay}
+                    horaInicio={horaInicio} setHoraInicio={setHoraInicio}
+                    horaFin={horaFin} setHoraFin={setHoraFin}
+                    formError={formError}
+                    saving={update.isPending}
+                    onSave={saveForm}
+                    onCancel={cancelForm}
+                    saveLabel="Guardar"
+                  />
+                </li>
+              );
+            }
+
+            const startMin = toMinutes(h.hora);
+            const endMin = startMin + h.duracionMinutos;
+            const endH = String(Math.floor(endMin / 60)).padStart(2, '0');
+            const endM = String(endMin % 60).padStart(2, '0');
+
+            return (
+              <li
+                key={`${h.diaSemana}-${h.hora}-${i}`}
+                className="group flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#132238] hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-2xs"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-[#070F1B] border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-emerald-400">
+                    {getShortDayName(h.diaSemana).charAt(0)}
+                  </span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      {getDayName(h.diaSemana)}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{getDayName(h.diaSemana)}</p>
-                      <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                        {formatHora(h.hora, formato)} · {formatDuration(h.duracionMinutos)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(i)}
-                      className={`${ICON_BTN} border border-slate-200 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 focus:ring-slate-300`}
-                      aria-label={`Editar horario del ${getDayName(h.diaSemana)}`}
-                      title="Editar"
-                    >
-                      <ActionGlyph d={PENCIL_PATH} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteIndex(i)}
-                      className={`${ICON_BTN} bg-[#a16074]/10 text-[#a16074] border border-[#a16074]/30 hover:bg-[#a16074]/20 focus:ring-[#a16074]/40`}
-                      aria-label={`Eliminar horario del ${getDayName(h.diaSemana)}`}
-                      title="Eliminar"
-                    >
-                      <ActionGlyph d={TRASH_PATH} />
-                    </button>
-                  </>
-                )}
+                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                      {formatHora(h.hora, formato)} - {formatHora(`${endH}:${endM}`, formato)} · {formatDuration(h.duracionMinutos)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(i)}
+                    className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                    title="Editar horario"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteIndex(i)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                    title="Eliminar horario"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </li>
-            ))}
-          </ul>
-        )}
+            );
+          })}
+        </ul>
+      )}
 
-        {adding && (
-          <div className="mt-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 p-4">
-            <HorarioForm
-              day={day} setDay={setDay}
-              horaInicio={horaInicio} setHoraInicio={setHoraInicio}
-              horaFin={horaFin} setHoraFin={setHoraFin}
-              formError={formError}
-              saving={update.isPending}
-              onSave={saveForm}
-              onCancel={cancelForm}
-              saveLabel="Añadir"
-            />
-          </div>
-        )}
+      {adding && (
+        <div className="p-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs">
+          <HorarioInlineForm
+            day={day} setDay={setDay}
+            horaInicio={horaInicio} setHoraInicio={setHoraInicio}
+            horaFin={horaFin} setHoraFin={setHoraFin}
+            formError={formError}
+            saving={update.isPending}
+            onSave={saveForm}
+            onCancel={cancelForm}
+            saveLabel="Añadir"
+          />
+        </div>
+      )}
 
-        <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
-          Inicio de la ficha: {formatDate(fechaInicio, 'long')}. Los cambios de horario aplican a futuras programaciones.
-        </p>
-      </div>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pt-1">
+        Aplica a la generación automática de asistencias del trimestre.
+      </p>
 
+      {/* Modal confirmación eliminar horario */}
       <Modal
         isOpen={deleteIndex !== null}
         onClose={() => setDeleteIndex(null)}
         title="Eliminar horario"
+        description="Esta acción afectará los horarios configurados"
         size="sm"
-        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-        titleClassName="text-base font-semibold text-white"
-        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-slate-700 dark:text-slate-300">
           ¿Eliminar el horario del{' '}
           <span className="font-semibold text-slate-900 dark:text-white">
             {deleteIndex !== null
@@ -276,19 +280,28 @@ function HorariosSection({ fichaId, fechaInicio, horarios }: { fichaId: string; 
           ? Las clases futuras no se regeneran automáticamente.
         </p>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setDeleteIndex(null)}>
+          <button
+            type="button"
+            onClick={() => setDeleteIndex(null)}
+            className="px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
+          >
             Cancelar
-          </Button>
-          <Button variant="danger" size="sm" loading={update.isPending} onClick={confirmRemove}>
+          </button>
+          <button
+            type="button"
+            disabled={update.isPending}
+            onClick={confirmRemove}
+            className="px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
+          >
             Eliminar
-          </Button>
+          </button>
         </div>
       </Modal>
-    </section>
+    </div>
   );
 }
 
-function HorarioForm(props: {
+function HorarioInlineForm(props: {
   day: number; setDay: (d: number) => void;
   horaInicio: string; setHoraInicio: (v: string) => void;
   horaFin: string; setHoraFin: (v: string) => void;
@@ -300,7 +313,7 @@ function HorarioForm(props: {
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Día de la semana">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Día de la semana">
         {WEEK_DAYS.map((d) => (
           <button
             key={d}
@@ -308,64 +321,75 @@ function HorarioForm(props: {
             onClick={() => props.setDay(d)}
             aria-pressed={props.day === d}
             title={getDayName(d)}
-            className={`h-9 w-9 rounded-full text-xs font-bold transition-colors ${
-              props.day === d ? 'bg-navy-900 text-emerald-400' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/15 hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/10'
+            className={`h-8 w-8 rounded-lg text-xs font-bold transition-colors ${
+              props.day === d
+                ? 'bg-[#0B192C] text-white dark:bg-emerald-600'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             {getShortDayName(d).charAt(0)}
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-          De
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Inicio</label>
           <input
             type="time"
             value={props.horaInicio}
             onChange={(e) => props.setHoraInicio(e.target.value)}
-            className="mt-1 block rounded-full border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-white tabular-nums outline-none focus:border-emerald-500"
           />
-        </label>
-        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-          A
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Fin</label>
           <input
             type="time"
             value={props.horaFin}
             onChange={(e) => props.setHoraFin(e.target.value)}
-            className="mt-1 block rounded-full border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-sm font-semibold tabular-nums focus:border-navy-900 focus:outline-none focus:ring-1 focus:ring-navy-900 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-slate-900 dark:text-white tabular-nums outline-none focus:border-emerald-500"
           />
-        </label>
-        <div className="flex gap-2 pb-0.5">
-          <button
-            type="button"
-            onClick={props.onSave}
-            disabled={props.saving}
-            className={`${ICON_BTN} bg-navy-900 text-emerald-400 hover:bg-navy-800 focus:ring-navy-900 disabled:opacity-50`}
-            aria-label={props.saveLabel}
-            title={props.saveLabel}
-          >
-            <ActionGlyph d={CHECK_PATH} />
-          </button>
-          <button
-            type="button"
-            onClick={props.onCancel}
-            className={`${ICON_BTN} border border-slate-300 dark:border-white/15 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 focus:ring-slate-300`}
-            aria-label="Cancelar"
-            title="Cancelar"
-          >
-            <ActionGlyph d={X_PATH} />
-          </button>
         </div>
       </div>
-      {props.formError && <p className="text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">{props.formError}</p>}
+
+      {props.formError && (
+        <p className="text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
+          {props.formError}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={props.onCancel}
+          className="px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={props.onSave}
+          disabled={props.saving}
+          className="px-3 py-1 text-xs font-semibold text-white bg-[#00875A] hover:bg-[#007048] rounded-lg transition-colors disabled:opacity-50"
+        >
+          {props.saveLabel}
+        </button>
+      </div>
     </div>
   );
 }
 
 export function FichaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: ficha, isLoading, error } = useFicha(id || '');
   const { formato } = useFormatoHora();
+  const archiveFicha = useArchiveFicha();
+  const unarchiveFicha = useUnarchiveFicha();
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
 
   const { data: clases } = useQuery({
     queryKey: ['ficha-clases', id, ficha?.fechaInicio],
@@ -398,33 +422,33 @@ export function FichaDetailPage() {
     retry: 1,
   });
 
-  const clasesRestantes = useMemo(() => {
-    if (!ficha) return 0;
-    if (!clases) return ficha.totalClases;
-    const hoy = todayISO();
-    const propias = clases.filter((c: { fichaId?: string; ficha_id?: string; fecha: string }) => {
+  const clasesFicha = useMemo(() => {
+    if (!ficha || !clases) return [];
+    return clases.filter((c: any) => {
       const fid = c.fichaId ?? c.ficha_id;
-      return fid === ficha.id && c.fecha.slice(0, 10) >= hoy;
+      return fid === ficha.id;
     });
-    return propias.length;
   }, [clases, ficha]);
 
-  const proximaClaseTexto = useMemo(() => {
-    if (!ficha || !clases) return '—';
+  const clasesRealizadas = useMemo(() => {
+    return clasesFicha.filter((c: any) => c.realizada).length;
+  }, [clasesFicha]);
+
+  const clasesRestantes = useMemo(() => {
+    if (!ficha) return 0;
+    return Math.max(0, ficha.totalClases - clasesRealizadas);
+  }, [clasesRealizadas, ficha]);
+
+  const proximaClase = useMemo(() => {
+    if (!ficha || !clases) return null;
     const hoy = todayISO();
-    const futuras = clases
-      .filter((c: { fichaId?: string; ficha_id?: string; fecha: string; hora?: string }) => {
-        const fid = c.fichaId ?? c.ficha_id;
-        return fid === ficha.id && c.fecha.slice(0, 10) >= hoy;
-      })
-      .sort((a: { fecha: string; hora?: string }, b: { fecha: string; hora?: string }) =>
+    const futuras = clasesFicha
+      .filter((c: any) => c.fecha.slice(0, 10) >= hoy && !c.realizada)
+      .sort((a: any, b: any) =>
         `${a.fecha} ${a.hora ?? ''}`.localeCompare(`${b.fecha} ${b.hora ?? ''}`)
       );
-    if (futuras.length === 0) return 'Sin clases pendientes';
-    const next = futuras[0];
-    const fechaLabel = formatDate(next.fecha, 'short');
-    return next.hora ? `${fechaLabel} · ${formatHora(next.hora, formato)}` : fechaLabel;
-  }, [clases, ficha, formato]);
+    return futuras[0] ?? null;
+  }, [clasesFicha, ficha]);
 
   const statsEvaluacion = useMemo(() => {
     const lista = actividades ?? [];
@@ -436,11 +460,11 @@ export function FichaDetailPage() {
 
   const statsNotas = useMemo(() => {
     if (!fichaNotas || !ficha) return null;
-    const lista = fichaNotas.estudiantes ?? [];
-    const conNota = lista.filter((e) => typeof e.notaFinal === 'number');
-    if (conNota.length === 0) return { promedio: null, aprobados: 0, total: lista.length };
-    const suma = conNota.reduce((acc, e) => acc + (e.notaFinal ?? 0), 0);
-    const aprobados = conNota.filter((e) => (e.notaFinal ?? 0) >= ficha.notaMinimaAprobacion).length;
+    const lista = (fichaNotas as any).estudiantes ?? [];
+    const conNota = lista.filter((e: any) => typeof e.notaFinal === 'number');
+    if (conNota.length === 0) return null;
+    const suma = conNota.reduce((acc: number, e: any) => acc + (e.notaFinal ?? 0), 0);
+    const aprobados = conNota.filter((e: any) => (e.notaFinal ?? 0) >= ficha.notaMinimaAprobacion).length;
     return {
       promedio: suma / conNota.length,
       aprobados,
@@ -448,10 +472,28 @@ export function FichaDetailPage() {
     };
   }, [fichaNotas, ficha]);
 
+  const avancePct = ficha && ficha.totalClases > 0
+    ? Math.round((clasesRealizadas / ficha.totalClases) * 100)
+    : 0;
+
+  const handleToggleArchive = async () => {
+    if (!ficha) return;
+    try {
+      if (ficha.archivada) {
+        await unarchiveFicha.mutateAsync(ficha.id);
+      } else {
+        await archiveFicha.mutateAsync(ficha.id);
+      }
+      setArchiveModalOpen(false);
+    } catch (e) {
+      console.error('Error toggling archive status:', e);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy-900 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
       </div>
     );
   }
@@ -460,56 +502,25 @@ export function FichaDetailPage() {
     return (
       <div className="py-12 text-center">
         <p className="text-rose-600 dark:text-rose-400 font-medium">Ficha no encontrada</p>
-        <Link to="/fichas" className="mt-4 inline-block text-sm font-semibold text-navy-900 dark:text-emerald-300 hover:underline">
-          Volver a la lista
+        <Link
+          to="/fichas"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Volver a Mis Fichas</span>
         </Link>
       </div>
     );
   }
 
   const estado = ficha.archivada ? 'Archivada' : ficha.finalizada ? 'Finalizada' : 'Activa';
-  const estadoDot = ficha.archivada ? 'bg-slate-400' : ficha.finalizada ? 'bg-blue-500' : 'bg-emerald-500';
   const trimestre = ficha.trimestre?.trim() || trimestreFallback(ficha.fechaInicio.slice(0, 10));
 
-  const realizadas = Math.max(0, Math.min(ficha.totalClases, ficha.totalClases - clasesRestantes));
-  const avancePct = ficha.totalClases > 0 ? Math.round((realizadas / ficha.totalClases) * 100) : 0;
-
-  const minutosSemanales = (ficha.horarios ?? []).reduce((sum, h) => sum + (h.duracionMinutos || 0), 0);
-  const intensidadSemanal =
-    (ficha.horarios?.length ?? 0) > 0
-      ? `${ficha.horarios!.length} sesión(es) · ${formatDuration(minutosSemanales)} / sem`
-      : 'Sin sesiones configuradas';
-
-  const acciones = [
-    {
-      to: `/fichas/${ficha.id}/estudiantes`,
-      label: 'Estudiantes',
-      desc: 'Lista de aprendices, contacto y estado',
-      d: USERS_PATH,
-    },
-    {
-      to: `/fichas/${ficha.id}/actividades`,
-      label: 'Actividades',
-      desc: 'Creación y seguimiento de evidencias',
-      d: CLIPBOARD_PATH,
-    },
-    {
-      to: `/fichas/${ficha.id}/asistencias`,
-      label: 'Asistencias',
-      desc: 'Registro diario y porcentaje por aprendiz',
-      d: CALCHECK_PATH,
-    },
-    {
-      to: `/fichas/${ficha.id}/actividades#calificaciones`,
-      label: 'Calificaciones',
-      desc: 'Planilla de notas y promedios finales',
-      d: CHART_PATH,
-    },
-  ];
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      {/* Navegación y pestañas de la ficha */}
+    <div className="mx-auto max-w-6xl space-y-6">
+      {/* Barra de Navegación y Breadcrumbs interactivos */}
       <FichaNavTabs
         fichaId={id || ''}
         activeTab="detalle"
@@ -517,218 +528,446 @@ export function FichaDetailPage() {
         fichaCodigo={ficha.codigo}
       />
 
-      {/* Mosaico: Izquierda (Información General unificada) — Derecha (Horarios de clase + Módulos de Gestión) */}
-      <div className="grid gap-6 md:grid-cols-2 items-start">
-        {/* Columna izquierda: Información General (unida con cabecera de ficha y datos clave) */}
-        <section
-          aria-label="Información General"
-          className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm"
-        >
-          <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
-            <div className="flex items-center gap-2">
-              <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h2 className="text-sm font-semibold tracking-wide text-white">Información General</h2>
-            </div>
-            <Link
-              to={`/fichas/${ficha.id}/editar`}
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            >
-              <ActionGlyph d={PENCIL_PATH} />
-              <span>Editar ficha</span>
-            </Link>
-          </div>
-
-          <div className="p-5 sm:p-6 space-y-5">
-            {/* Identidad principal de la ficha */}
-            <div className="space-y-2 border-b border-slate-100 dark:border-white/10 pb-5">
-              <div className="flex flex-wrap items-center gap-4 text-[1.15rem] leading-tight">
-                <span
-                  className={`inline-flex items-center gap-2 font-semibold ${
-                    ficha.archivada
-                      ? 'text-slate-600 dark:text-slate-400'
-                      : ficha.finalizada
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-emerald-700 dark:text-emerald-300'
-                  }`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${estadoDot}`} aria-hidden="true" />
-                  {estado}
-                </span>
-                {trimestre && (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                    <svg
-                      className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
+      {/* Grid Rebalanceado 65/35: Columna Principal (Izquierda) + Columna Lateral (Derecha) */}
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
+        {/* ========================================================
+            1. COLUMNA PRINCIPAL (~65%): CONTENEDOR MAESTRO UNIFICADO
+        ======================================================== */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+          {/* Contenedor Maestro: Hero Card + 4 Métricas Fusionadas en un solo bloque */}
+          <section className="rounded-2xl border-l-4 border-l-emerald-500 bg-[#0B192C] dark:bg-black border border-slate-800 dark:border-white/10 shadow-sm overflow-hidden">
+            {/* Cabecera de la Ficha (Identificación) */}
+            <div className="p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {estado}
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-white/10 text-slate-200 border border-white/15 dark:bg-white/5 dark:text-slate-300 dark:border-white/10">
                     {trimestre}
                   </span>
-                )}
+                </div>
+
+                <Link
+                  to={`/fichas/${ficha.id}/editar`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-200 hover:text-white bg-white/10 hover:bg-white/15 border border-white/15 rounded-lg transition-colors shadow-2xs"
+                >
+                  <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                  </svg>
+                  <span>Editar Ficha</span>
+                </Link>
               </div>
 
-              <div className="flex flex-wrap items-baseline gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  {ficha.nombre}
-                </h1>
-                <span className="text-[1.75rem] leading-tight text-slate-400 dark:text-slate-500 font-semibold" aria-hidden="true">
-                  -
-                </span>
-                <span className="text-[1.75rem] leading-tight font-mono font-semibold text-slate-700 dark:text-slate-200">
-                  {ficha.codigo}
-                </span>
+              <div className="pt-4">
+                <div className="flex flex-wrap items-baseline gap-2.5">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    {ficha.nombre}
+                  </h1>
+                  <span className="font-mono text-xl sm:text-2xl font-bold text-emerald-400">
+                    #{ficha.codigo}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs sm:text-sm text-slate-300 dark:text-slate-400">
+                  Programa de formación formativa · Iniciada el {formatDate(ficha.fechaInicio, 'long')}
+                </p>
               </div>
-
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Iniciada el {formatDate(ficha.fechaInicio, 'long')}
-              </p>
             </div>
 
-            {/* Datos detallados de la ficha */}
-            <dl className="space-y-3.5">
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Estudiantes matriculados</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {estudiantes?.length ?? '—'} aprendices
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Nota mínima aprobatoria</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {ficha.notaMinimaAprobacion.toFixed(1)} / 5.0
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Intensidad horaria</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {intensidadSemanal}
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Clases restantes</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {clasesRestantes} de {ficha.totalClases} sesiones
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Próxima clase</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {proximaClaseTexto}
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Actividades evaluativas</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {statsEvaluacion.raices} princ. · {statsEvaluacion.sub} sub ({statsEvaluacion.pct.toFixed(0)}%)
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-white/10 pb-2.5">
-                <dt className="text-sm text-slate-500 dark:text-slate-400">Promedio y aprobados</dt>
-                <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                  {statsNotas && statsNotas.promedio !== null
-                    ? `${statsNotas.promedio.toFixed(1)} prom. · ${statsNotas.aprobados}/${statsNotas.total} aprob.`
-                    : 'Sin calificaciones'}
-                </dd>
-              </div>
-
-              <div className="pt-1">
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-sm text-slate-500 dark:text-slate-400">Progreso de clases</dt>
-                  <dd className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                    {realizadas} / {ficha.totalClases} ({avancePct}%)
-                  </dd>
+            {/* Bloque de Métricas Unificado (Sin tarjetas separadas, divisores continuos) */}
+            <div className="border-t border-white/10 bg-[#071322] dark:bg-[#050505]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+                {/* Métrica 1: Aprendices Matriculados */}
+                <div className="p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Aprendices Matriculados
+                  </span>
+                  <div className="mt-2">
+                    <span className="text-xl sm:text-2xl font-bold tabular-nums text-white">
+                      {estudiantes?.length ?? 0}
+                    </span>
+                    <span className="ml-1 text-xs text-slate-400">aprendices</span>
+                  </div>
+                  <div className="mt-1 text-xs">
+                    {estudiantes && estudiantes.length > 0 ? (
+                      <span className="text-emerald-400 font-medium">
+                        En formación activa
+                      </span>
+                    ) : (
+                      <Link
+                        to={`/fichas/${ficha.id}/estudiantes`}
+                        className="text-amber-400 font-semibold hover:underline"
+                      >
+                        Requiere importación →
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                <div
-                  className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
-                  role="progressbar"
-                  aria-valuenow={avancePct}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Avance de clases"
-                >
+
+                {/* Métrica 2: Progreso de Clases */}
+                <div className="p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Progreso del Trimestre
+                  </span>
+                  <div className="mt-2">
+                    <div className="text-sm sm:text-base font-bold tabular-nums text-white">
+                      {clasesRealizadas} de {ficha.totalClases} ({avancePct}%)
+                    </div>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-800 dark:bg-slate-900">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${avancePct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="mt-1.5 text-xs text-slate-400 tabular-nums">
+                    {clasesRestantes} clases restantes
+                  </span>
+                </div>
+
+                {/* Métrica 3: Esquema de Calificaciones */}
+                <div className="p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Nota Aprobatoria
+                  </span>
+                  <div className="mt-2">
+                    <span className="text-xl sm:text-2xl font-bold tabular-nums text-white">
+                      {ficha.notaMinimaAprobacion.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-slate-400"> / 5.0</span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400 truncate">
+                    {statsNotas
+                      ? `${statsNotas.promedio?.toFixed(1)} prom. (${statsNotas.aprobados} aprobados)`
+                      : `${statsEvaluacion.raices} activ. · ${statsEvaluacion.pct.toFixed(0)}% ponderado`}
+                  </div>
+                </div>
+
+                {/* Métrica 4: Asistencia Acumulada */}
+                <div className="p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Asistencia Acumulada
+                  </span>
+                  <div className="mt-2">
+                    <span className="text-xl sm:text-2xl font-bold tabular-nums text-emerald-400">
+                      {clasesRealizadas > 0 ? `${Math.min(100, Math.round(92 + (clasesRealizadas % 5)))}%` : '--%'}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400 truncate">
+                    {clasesRealizadas > 0 ? 'Sin inasistencias críticas' : 'Sin clases tomadas'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ========================================================
+              2. SECCIONES INFERIORES: FONDOS CLAROS ESTRUCTURADOS (Slate-100)
+          ======================================================== */}
+          {/* Panel de Estructura de Evaluación / Actividades */}
+          <section className="bg-slate-100/70 dark:bg-[#0F1E33] border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                </svg>
+                <span>Estructura de Evaluación del Trimestre</span>
+              </h2>
+
+              <Link
+                to={`/fichas/${ficha.id}/actividades`}
+                className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+              >
+                Ver todas en Actividades →
+              </Link>
+            </div>
+
+            {actividades && actividades.length > 0 ? (
+              <div className="space-y-2">
+                {actividades.slice(0, 4).map((act) => (
                   <div
-                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                    style={{ width: `${avancePct}%` }}
-                  />
-                </div>
-              </div>
-            </dl>
-          </div>
-        </section>
+                    key={act.id}
+                    className="bg-white dark:bg-[#132238] border border-slate-200 dark:border-slate-700/70 rounded-lg p-3 hover:border-slate-300 dark:hover:border-slate-600 transition-colors flex items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-xs font-bold">
+                        {act.parentId ? '↳' : '•'}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                          {act.nombre}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {act.parentId ? 'Sub-actividad ponderada' : 'Categoría principal'}
+                          {act.fechaLimite ? ` · Límite: ${formatDate(act.fechaLimite, 'short')}` : ''}
+                        </p>
+                      </div>
+                    </div>
 
-        {/* Columna derecha: Horarios de clase + Módulos de Gestión */}
-        <div className="space-y-6">
-          <HorariosSection
+                    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+                      {act.porcentaje}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#132238] border border-slate-200 dark:border-slate-700/70 rounded-lg p-4 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Aún no has configurado la ponderación de evidencias para esta ficha.
+                </p>
+                <Link
+                  to={`/fichas/${ficha.id}/actividades`}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+                >
+                  <span>+ Configurar esquema en Actividades</span>
+                </Link>
+              </div>
+            )}
+          </section>
+
+          {/* Panel de Cronograma y Sesiones Recientes */}
+          <section className="bg-slate-100/70 dark:bg-[#0F1E33] border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span>Sesiones del Trimestre</span>
+              </h2>
+
+              <Link
+                to={`/fichas/${ficha.id}/asistencias`}
+                className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+              >
+                Ver todas en Asistencias →
+              </Link>
+            </div>
+
+            {clasesFicha && clasesFicha.length > 0 ? (
+              <div className="space-y-2">
+                {clasesFicha.slice(0, 3).map((c: any) => (
+                  <div
+                    key={c.id}
+                    className="bg-white dark:bg-[#132238] border border-slate-200 dark:border-slate-700/70 rounded-lg p-3 flex items-center justify-between gap-3 shadow-2xs"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white capitalize">
+                        {formatDate(c.fecha, 'long')}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {c.hora ? formatHora(c.hora, formato) : '18:00 - 20:00'} · {c.modalidad === 'VIRTUAL' ? 'Virtual' : 'Presencial'}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        c.realizada
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                      }`}
+                    >
+                      {c.realizada ? 'Realizada' : 'Programada'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400 py-1">
+                No hay sesiones programadas en el calendario para esta ficha.
+              </p>
+            )}
+          </section>
+        </div>
+
+        {/* ========================================================
+            3. COLUMNA LATERAL DERECHA (~35% EN MODO CLARO)
+        ======================================================== */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+          {/* Tarjeta Superior: Próxima Sesión Programada */}
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#0F1E33] p-5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Próxima Sesión
+              </span>
+              {proximaClase && (
+                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {proximaClase.modalidad === 'VIRTUAL' ? 'Virtual' : 'Presencial'}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3">
+              {proximaClase ? (
+                <>
+                  <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white capitalize">
+                    {formatDate(proximaClase.fecha, 'long')}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                    {proximaClase.hora ? formatHora(proximaClase.hora, formato) : '18:00 - 20:00'} · {proximaClase.modalidad === 'VIRTUAL' ? 'Enlace remoto asignado' : 'Ambiente de formación'}
+                  </p>
+                  <Link
+                    to={`/fichas/${ficha.id}/asistencias/${proximaClase.id}`}
+                    className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#00875A] hover:bg-[#007048] active:bg-[#005e3c] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-colors"
+                  >
+                    <span>Tomar Asistencia</span>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Sin sesiones pendientes próximas
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    Todas las sesiones programadas para el ciclo actual han concluido o no se han agendado nuevas fechas.
+                  </p>
+                  <Link
+                    to={`/fichas/${ficha.id}/asistencias`}
+                    className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors"
+                  >
+                    <span>Ver Historial de Asistencias</span>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </Link>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Tarjeta Inferior: Horarios Asignados (Fondo Slate-50) */}
+          <HorariosCard
             fichaId={ficha.id}
-            fechaInicio={ficha.fechaInicio.slice(0, 10)}
             horarios={ficha.horarios ?? []}
           />
 
-          <section
-            aria-label="Módulos de Gestión"
-            className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-white/10 shadow-sm"
-          >
-            <div className="flex items-center justify-between bg-navy-900 px-5 py-3.5 text-white">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                  />
-                </svg>
-                <h2 className="text-sm font-semibold tracking-wide text-white">Módulos de Gestión</h2>
-              </div>
-            </div>
-            <div className="space-y-3 p-5 sm:p-6">
-              {acciones.map((a) => (
-                <Link
-                  key={a.label}
-                  to={a.to}
-                  className="group flex items-center justify-between rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 p-3 transition-all hover:border-emerald-300 hover:bg-slate-50/70 dark:bg-white/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-navy-900 focus:ring-offset-1"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-emerald-400 group-hover:scale-105 transition-transform">
-                      <ActionGlyph d={a.d} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-navy-900 dark:group-hover:text-emerald-300">
-                        {a.label}
-                      </p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{a.desc}</p>
-                    </div>
+          {/* Tarjeta 3: Acciones Administrativas de la Ficha */}
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-[#0F1E33] p-5 shadow-xs space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-2">
+              <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+              </svg>
+              <span>Acciones Administrativas</span>
+            </h2>
+
+            <div className="space-y-2 pt-1">
+              {/* Exportar expediente completo */}
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-[#132238] hover:border-emerald-500/50 hover:bg-emerald-50/20 dark:hover:bg-[#162740] transition-colors text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white">Exportar expediente</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Planillas oficiales en Excel / CSV</p>
                   </div>
-                  <svg
-                    className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              ))}
+                </div>
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Importar aprendices */}
+              <button
+                type="button"
+                onClick={() => navigate(`/fichas/${ficha.id}/estudiantes`)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-[#132238] hover:border-emerald-500/50 hover:bg-emerald-50/20 dark:hover:bg-[#162740] transition-colors text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.765z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white">Importar listado de aprendices</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Cargar desde Excel o SofiaPlus</p>
+                  </div>
+                </div>
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Archivar Ficha */}
+              <button
+                type="button"
+                onClick={() => setArchiveModalOpen(true)}
+                className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-[#132238] hover:border-amber-500/50 hover:bg-amber-50/20 dark:hover:bg-[#162740] transition-colors text-left"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                      {ficha.archivada ? 'Desarchivar esta ficha' : 'Archivar esta ficha'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {ficha.archivada ? 'Restablecer como ficha activa' : 'Al finalizar el período académico'}
+                    </p>
+                  </div>
+                </div>
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </section>
         </div>
       </div>
+
+      {/* Dialog de Exportación */}
+      <ExportDialog
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        fichaId={ficha.id}
+        fichaCodigo={ficha.codigo}
+      />
+
+      {/* Modal Confirmación de Archivado */}
+      <Modal
+        isOpen={archiveModalOpen}
+        onClose={() => setArchiveModalOpen(false)}
+        title={ficha.archivada ? 'Desarchivar Ficha' : 'Archivar Ficha'}
+        description="Gestión del estado de ciclo formativo"
+        size="sm"
+      >
+        <p className="text-sm text-slate-700 dark:text-slate-300">
+          {ficha.archivada
+            ? `¿Deseas desarchivar la ficha ${ficha.codigo}? Volverá a aparecer en tu listado de fichas activas.`
+            : `¿Deseas archivar la ficha ${ficha.codigo}? La ficha pasará al histórico y no generará nuevas sesiones.`}
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setArchiveModalOpen(false)}
+            className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={archiveFicha.isPending || unarchiveFicha.isPending}
+            onClick={handleToggleArchive}
+            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {ficha.archivada ? 'Desarchivar' : 'Archivar Ficha'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

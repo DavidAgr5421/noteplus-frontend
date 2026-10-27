@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/shared/ui';
 import { useFicha, useFichas, useCreateFicha, useUpdateFicha } from '../hooks/useFichas';
 import { FichaForm } from '../components/FichaForm';
 import {
@@ -48,59 +47,48 @@ export function FichaFormPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-navy-900 dark:hover:text-emerald-300 transition-colors cursor-pointer"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Volver
-        </button>
-      </div>
-
-      <div
-        className="rounded-3xl px-5 py-4 panel-fade"
-      >
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
-          <p className="truncate text-[1.8rem] font-bold leading-tight text-gray-900 dark:text-white">
-            {isEditing ? 'Editar Ficha' : 'Nueva Ficha'}
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* 1. Cabecera y Navegación */}
+      <div className="flex flex-col gap-3 border-b border-slate-200/90 pb-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="group mb-2 inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+          >
+            <svg className="h-4 w-4 text-slate-500 transition-transform group-hover:-translate-x-0.5 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Volver a Mis Fichas</span>
+          </button>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {isEditing ? 'Editar Ficha' : 'Crear Nueva Ficha'}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {isEditing
+              ? 'Modifica los datos generales, cupos y horarios formativos de la ficha.'
+              : 'Configura los datos del programa formativo, el esquema de horarios y el calendario automático de sesiones.'}
           </p>
         </div>
-        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
-          {isEditing
-            ? 'Modifica los datos de la ficha'
-            : 'Crea una nueva ficha para gestionar estudiantes y notas'}
-        </p>
       </div>
 
-      <Card variant="default" padding="none">
-        <CardContent className="p-4 sm:p-6">
-          <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">
-            Completa los datos de la ficha. Los horarios se usarán para generar las clases automáticamente.
-          </p>
-          <FichaForm
-            key={ficha?.id ?? 'new'}
-            initialData={ficha ? {
-              ...ficha,
-              fechaInicio: formatDateForInput(ficha.fechaInicio),
-              horarios: ficha.horarios ?? [],
-            } : undefined}
-            activeFichas={activeFichas}
-            currentFichaId={id}
-            externalConflict={serverConflict}
-            onClearExternalConflict={() => setServerConflict(null)}
-            onSubmit={handleSubmit}
-            onCancel={handleBack}
-            isLoading={createFicha.isPending || updateFicha.isPending}
-            submitLabel={isEditing ? 'Actualizar' : 'Crear ficha'}
-          />
-        </CardContent>
-      </Card>
+      {/* 2. Formulario Estructurado en Secciones Delimitadas */}
+      <FichaForm
+        key={ficha?.id ?? 'new'}
+        initialData={ficha ? {
+          ...ficha,
+          fechaInicio: formatDateForInput(ficha.fechaInicio),
+          horarios: ficha.horarios ?? [],
+        } : undefined}
+        activeFichas={activeFichas}
+        currentFichaId={id}
+        externalConflict={serverConflict}
+        onClearExternalConflict={() => setServerConflict(null)}
+        onSubmit={handleSubmit}
+        onCancel={handleBack}
+        isLoading={createFicha.isPending || updateFicha.isPending}
+        submitLabel={isEditing ? 'Actualizar Ficha' : 'Crear Ficha'}
+      />
     </div>
   );
 }

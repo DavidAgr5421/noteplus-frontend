@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button, Card, CardContent, Input, Modal } from '@/shared/ui';
+import { Button, Modal } from '@/shared/ui';
 import { formatDate } from '@/shared/utils/helpers';
 import {
   useActividades,
@@ -12,7 +12,6 @@ import {
   useCopiarActividades,
 } from '../hooks/useCalificaciones';
 import { useFicha, useFichas } from '@/features/fichas/hooks/useFichas';
-import { FichaHeaderCard } from '@/features/fichas/components/FichaHeaderCard';
 import { FichaNavTabs } from '@/features/fichas/components/FichaNavTabs';
 import { ActividadModal, NotasTable } from '../components/CalificacionesComponents';
 import { ExportDialog, ImportHint } from '@/features/importacion';
@@ -200,7 +199,44 @@ export function ActividadesPage() {
     };
   }, [fichaId, saveMutate]);
 
-  const parentOptions = actividades?.filter(a => !a.parentId).map(a => ({ value: a.id, label: a.nombre })) || [];
+  const parentOptions = useMemo(() => {
+    if (!actividades || actividades.length === 0) return [];
+
+    // Si se está editando, no permitir seleccionarse a sí misma ni a sus descendientes para evitar ciclos
+    const invalidIds = new Set<string>();
+    if (editingActividad) {
+      invalidIds.add(editingActividad.id);
+      const queue = [editingActividad.id];
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        actividades.forEach((a) => {
+          if (a.parentId === curr && !invalidIds.has(a.id)) {
+            invalidIds.add(a.id);
+            queue.push(a.id);
+          }
+        });
+      }
+    }
+
+    const options: Array<{ value: string; label: string }> = [];
+    const appendLevel = (parentId: string | null, depth: number) => {
+      const items = (actividades || [])
+        .filter((a) => a.parentId === parentId && !invalidIds.has(a.id))
+        .sort((a, b) => a.orden - b.orden);
+
+      items.forEach((item) => {
+        const indent = depth > 0 ? `${'— '.repeat(depth)} ` : '';
+        options.push({
+          value: item.id,
+          label: `${indent}${item.nombre}`,
+        });
+        appendLevel(item.id, depth + 1);
+      });
+    };
+
+    appendLevel(null, 0);
+    return options;
+  }, [actividades, editingActividad]);
 
   const childrenMap = useMemo(() => {
     const map = new Map<string, Actividad[]>();
@@ -210,15 +246,33 @@ export function ActividadesPage() {
         map.get(a.parentId)!.push(a);
       }
     });
+    map.forEach(list => list.sort((a, b) => a.orden - b.orden));
     return map;
   }, [actividades]);
 
   const rootActividades = useMemo(
-    () => actividades?.filter(a => !a.parentId) || [],
+    () => (actividades?.filter(a => !a.parentId) || []).sort((a, b) => a.orden - b.orden),
     [actividades],
   );
 
   const totalPorcentaje = rootActividades.reduce((sum, a) => sum + a.porcentaje, 0);
+
+  const porcentajeDisponible = useMemo(() => {
+    if (editingActividad) {
+      if (editingActividad.parentId) {
+        const siblings = childrenMap.get(editingActividad.parentId) || [];
+        const siblingsTotal = siblings.reduce((s, c) => (c.id === editingActividad.id ? s : s + c.porcentaje), 0);
+        return Math.max(0, 100 - siblingsTotal);
+      }
+      return Math.max(0, 100 - (totalPorcentaje - editingActividad.porcentaje));
+    }
+    if (isSubactividad && selectedParentId) {
+      const currentKids = childrenMap.get(selectedParentId) || [];
+      const currentSubtotal = currentKids.reduce((s, c) => s + c.porcentaje, 0);
+      return Math.max(0, 100 - currentSubtotal);
+    }
+    return Math.max(0, 100 - totalPorcentaje);
+  }, [editingActividad, isSubactividad, selectedParentId, childrenMap, totalPorcentaje]);
 
   const statsNotas = useMemo(() => {
     const est = fichaNotas?.estudiantes ?? [];
@@ -233,10 +287,13 @@ export function ActividadesPage() {
     return (
       <button
         type="button"
-        onClick={onClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
         aria-label={label}
         title="Editar fecha límite"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-white focus:outline-none focus:ring-2 focus:ring-green-600"
+        className="flex h-6 w-6 sm:h-5 sm:w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 touch-manipulation transition-colors"
       >
         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -277,54 +334,67 @@ export function ActividadesPage() {
     });
   };
 
-  const renderAcciones = (actividad: Actividad) => (
-    <div className="flex items-center justify-center gap-1">
-      {!finalizada && !actividad.parentId && (
-        <button
-          type="button"
-          aria-label={`Añadir subactividad a ${actividad.nombre}`}
-          title="Añadir subactividad"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAddActividad(actividad.id);
-          }}
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-emerald-400 hover:bg-navy-800 dark:bg-black dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-navy-900 shadow-xs"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      )}
-      <button
-        type="button"
-        aria-label={`Editar ${actividad.nombre}`}
-        title="Editar"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleEditActividad(actividad);
-        }}
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white focus:outline-none focus:ring-2 focus:ring-green-600"
+  const renderAcciones = (actividad: Actividad) => {
+    const isSelected = activeActividadId === actividad.id;
+    return (
+      <div
+        className={`flex items-center justify-end gap-0.5 sm:gap-1 transition-opacity ${
+          isSelected
+            ? 'opacity-100'
+            : 'opacity-100 sm:opacity-40 sm:group-hover:opacity-100'
+        }`}
       >
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        aria-label={`Eliminar ${actividad.nombre}`}
-        title="Eliminar"
-        onClick={(e) => {
-          e.stopPropagation();
-          setDeletingActividad(actividad);
-        }}
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-[#a16074] text-white hover:bg-[#8e5063] focus:outline-none focus:ring-2 focus:ring-[#a16074]/50 shadow-xs"
-      >
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-  );
+        {!finalizada && (
+          <button
+            type="button"
+            aria-label={`Añadir subactividad a ${actividad.nombre}`}
+            title="Añadir subactividad"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddActividad(actividad.id);
+            }}
+            className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg p-1 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 dark:text-slate-300 dark:hover:text-emerald-400 dark:hover:bg-emerald-500/10 transition-colors touch-manipulation"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+        )}
+        {!finalizada && (
+          <button
+            type="button"
+            aria-label={`Editar ${actividad.nombre}`}
+            title="Editar"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditActividad(actividad);
+            }}
+            className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-white/10 transition-colors touch-manipulation"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+        )}
+        {!finalizada && (
+          <button
+            type="button"
+            aria-label={`Eliminar ${actividad.nombre}`}
+            title="Eliminar"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeletingActividad(actividad);
+            }}
+            className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded-lg p-1 text-slate-600 hover:text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-slate-300 dark:hover:text-red-400 dark:hover:bg-red-500/20 transition-colors touch-manipulation"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  };
 
   type ColKey = 'nombre' | 'fecha' | 'accion' | 'porcentaje';
   const DEFAULT_COL_WIDTHS: Record<ColKey, number> = { nombre: 280, fecha: 135, accion: 90, porcentaje: 105 };
@@ -406,11 +476,12 @@ export function ActividadesPage() {
     </span>
   );
 
-  const renderActividad = (actividad: Actividad) => {
+  const renderActividad = (actividad: Actividad, depth = 0): ReactNode => {
     const children = childrenMap.get(actividad.id) || [];
     const hasChildren = children.length > 0;
     const isCollapsed = collapsed.has(actividad.id);
     const subtotal = children.reduce((sum, c) => sum + c.porcentaje, 0);
+    const isSelected = activeActividadId === actividad.id;
 
     return (
       <Fragment key={actividad.id}>
@@ -421,120 +492,110 @@ export function ActividadesPage() {
               toggleCollapsed(actividad.id);
             }
           }}
-          className={`group border-b border-gray-100 dark:border-white/10 dark:bg-black align-middle transition-colors cursor-pointer ${
-            activeActividadId === actividad.id
-              ? 'bg-emerald-50/70 dark:bg-emerald-950/20 ring-1 ring-inset ring-emerald-500/30'
-              : 'hover:bg-slate-50/60 dark:hover:bg-white/5'
+          className={`group border-b border-slate-100 dark:border-white/10 align-middle transition-colors cursor-pointer touch-manipulation ${
+            isSelected
+              ? 'bg-emerald-50/80 dark:bg-emerald-950/30'
+              : hasChildren
+              ? 'bg-slate-50/70 dark:bg-white/[0.02] hover:bg-slate-100/60 dark:hover:bg-white/[0.04] active:bg-slate-100'
+              : 'hover:bg-slate-50/60 dark:hover:bg-white/[0.03] active:bg-slate-50'
           }`}
         >
-          <td className="py-3 pl-4 pr-2">
-            <div className="relative flex flex-col min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                {hasChildren ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleCollapsed(actividad.id);
-                    }}
-                    aria-expanded={!isCollapsed}
-                    aria-label={isCollapsed ? `Mostrar subactividades de ${actividad.nombre}` : `Ocultar subactividades de ${actividad.nombre}`}
-                    className="p-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 shrink-0"
-                  >
-                    <svg
-                      className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-180'}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                ) : (
-                  <div className="w-6 shrink-0" />
-                )}
-                <span className="h-2 w-2 shrink-0 rounded-full border-2 border-green-600" aria-hidden="true" />
-                <span className="font-medium truncate dark:text-slate-100" title={actividad.nombre}>{actividad.nombre}</span>
-                {hasChildren && (
-                  <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap shrink-0 ${subtotal === 100 ? 'bg-green-100 text-green-700 dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-yellow-100 text-yellow-700 dark:bg-amber-500/20 dark:text-amber-300'}`}>
-                    {subtotal.toFixed(1)}% / 100%
-                  </span>
-                )}
-                {!finalizada && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddActividad(actividad.id);
-                    }}
-                    aria-label={`Añadir subactividad a ${actividad.nombre}`}
-                    title="Añadir subactividad"
-                    className="sm:hidden inline-flex items-center gap-1 rounded-full bg-emerald-100/90 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold border border-emerald-300/70 dark:border-emerald-400/30 shrink-0 active:scale-95 transition-transform"
-                  >
-                    + Sub
-                  </button>
-                )}
-              </div>
-              {!finalizada && (
+          {/* Actividad / Categoría con soporte multinivel responsivo */}
+          <td className="py-3 pl-3 pr-2 sm:pl-4 sm:pr-3">
+            <div
+              className="flex items-center gap-1.5 sm:gap-2 min-w-0"
+              style={{ paddingLeft: depth > 0 ? `${Math.min(depth * 1.25, 4)}rem` : undefined }}
+            >
+              {depth > 0 && (
+                <div
+                  className="h-4 border-l-2 border-slate-300 dark:border-white/20 mr-1 shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+              {hasChildren ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAddActividad(actividad.id);
+                    toggleCollapsed(actividad.id);
                   }}
-                  aria-label={`Añadir subactividad a ${actividad.nombre}`}
-                  className={`absolute left-7 top-full z-20 items-center gap-1.5 rounded-b-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-300 shadow-md hover:text-green-800 dark:hover:text-green-200 hover:underline ${
-                    activeActividadId === actividad.id ? 'inline-flex' : 'hidden'
-                  } group-hover:inline-flex group-focus-within:inline-flex`}
+                  aria-expanded={!isCollapsed}
+                  aria-label={isCollapsed ? `Mostrar subactividades de ${actividad.nombre}` : `Ocultar subactividades de ${actividad.nombre}`}
+                  className="flex h-7 w-7 items-center justify-center -ml-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 shrink-0 rounded transition-colors touch-manipulation"
                 >
-                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-xs leading-none text-white" aria-hidden="true">
-                    +
-                  </span>
-                  Añadir subactividad
+                  <svg
+                    className={`h-4 w-4 transition-transform duration-150 ${isCollapsed ? '-rotate-90' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
+              ) : (
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                    depth === 0 ? 'bg-emerald-500 ml-1.5 mr-1' : 'bg-slate-400 dark:bg-slate-500 ml-1 mr-1'
+                  }`}
+                  aria-hidden="true"
+                />
               )}
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <span
+                  className={`truncate ${
+                    depth === 0
+                      ? 'font-bold text-slate-900 dark:text-white text-sm'
+                      : depth === 1
+                      ? 'font-semibold text-slate-800 dark:text-slate-200 text-sm'
+                      : 'font-normal text-slate-700 dark:text-slate-300 text-xs sm:text-sm'
+                  }`}
+                  title={actividad.nombre}
+                >
+                  {actividad.nombre}
+                </span>
+                {hasChildren && (
+                  <span
+                    className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] sm:text-[11px] font-semibold tracking-tight border shrink-0 ${
+                      subtotal === 100
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20'
+                        : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20'
+                    }`}
+                    title={`Suma de subactividades: ${subtotal.toFixed(1)}%`}
+                  >
+                    {subtotal.toFixed(0)}% ponderado
+                  </span>
+                )}
+              </div>
             </div>
           </td>
-          <td className="px-2 py-3 text-center">
-            <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
+
+          {/* Fecha Límite */}
+          <td className="px-2 py-3 text-center sm:px-3">
+            <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">
               <span className="truncate">{actividad.fechaLimite ? formatDate(actividad.fechaLimite) : '—'}</span>
               {!finalizada && (
                 <BotonEditarFecha onClick={() => handleEditActividad(actividad)} label={`Editar fecha límite de ${actividad.nombre}`} />
               )}
             </span>
           </td>
-          <td className="px-2 py-3">{renderAcciones(actividad)}</td>
-          <td className="px-2 py-3 text-center">
-            <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
+
+          {/* Ponderación */}
+          <td className="px-2 py-3 text-center sm:px-3">
+            <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
               {actividad.porcentaje.toFixed(1)}%
             </span>
           </td>
+
+          {/* Acciones */}
+          <td className="px-2 py-3 text-right sm:px-3">
+            {renderAcciones(actividad)}
+          </td>
         </tr>
-        {hasChildren && !isCollapsed && children.map(child => (
-          <tr key={child.id} className="border-b border-gray-100 dark:border-white/10 dark:bg-black align-middle">
-            <td className="py-2 pl-4 pr-2">
-              <div className="ml-8 border-l-2 border-gray-200 dark:border-white/10 pl-4">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="h-2 w-2 shrink-0 rounded-full border-2 border-green-400" aria-hidden="true" />
-                  <span className="truncate text-gray-800 dark:text-slate-100" title={child.nombre}>{child.nombre}</span>
-                </span>
-              </div>
-            </td>
-            <td className="px-2 py-2 text-center">
-              <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
-                <span className="truncate">{child.fechaLimite ? formatDate(child.fechaLimite) : '—'}</span>
-                {!finalizada && (
-                  <BotonEditarFecha onClick={() => handleEditActividad(child)} label={`Editar fecha límite de ${child.nombre}`} />
-                )}
-              </span>
-            </td>
-            <td className="px-2 py-2">{renderAcciones(child)}</td>
-            <td className="px-2 py-2 text-center">
-              <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
-                {child.porcentaje.toFixed(1)}%
-              </span>
-            </td>
-          </tr>
-        ))}
+
+        {/* Recursión: Subactividades multinivel */}
+        {hasChildren && !isCollapsed && children.map((child) => renderActividad(child, depth + 1))}
       </Fragment>
     );
   };
@@ -640,19 +701,9 @@ export function ActividadesPage() {
         />
       </div>
 
-      {/* Encabezado superior: FichaHeaderCard + Tarjeta organizada de resumen (sin tags) */}
-      <div className="flex flex-col gap-4 px-4 lg:flex-row lg:items-stretch">
-        {ficha && (
-          <div className="min-w-0 lg:w-[32%] lg:shrink-0 flex">
-            <FichaHeaderCard
-              ficha={ficha}
-              onBack={() => navigate(-1)}
-              onOpenDetalle={() => navigate(`/fichas/${fichaId}`)}
-            />
-          </div>
-        )}
-
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-4 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 px-5 py-3.5 shadow-xs">
+      {/* Resumen de Métricas de la Ficha a ancho completo */}
+      <div className="px-4">
+        <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-black px-5 py-3.5 shadow-sm">
           <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-5 sm:divide-x sm:divide-slate-100 dark:sm:divide-white/10">
             <StatItem
               icon={<span className="text-sm font-bold" aria-hidden="true">%</span>}
@@ -660,7 +711,7 @@ export function ActividadesPage() {
               label="Total"
               sublabel="Meta 100%"
               title="Porcentaje total asignado"
-              valueClassName={`tabular-nums ${totalPorcentaje === 100 ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}
+              valueClassName={`tabular-nums ${totalPorcentaje === 100 ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}
             />
             <StatItem
               icon={<StatGlyph d={STAT_ICONS.actividades} />}
@@ -696,7 +747,7 @@ export function ActividadesPage() {
               aria-pressed={vertical}
               title={vertical ? 'Ver apilado' : 'Modo mosaico (ver lado a lado)'}
               aria-label={vertical ? 'Ver actividades y calificaciones apiladas' : 'Ver actividades y calificaciones lado a lado'}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-900"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-white/20 bg-white dark:bg-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-900 shadow-2xs transition-colors"
             >
               {vertical ? (
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -734,16 +785,18 @@ export function ActividadesPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
                 </svg>
-                <Input
+                <input
                   type="text"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Buscar..."
+                  placeholder="Buscar actividad..."
                   aria-label="Buscar actividad por nombre"
-                  className={`py-1.5 pl-10 text-sm ${vertical ? 'sm:w-44' : 'sm:w-56'}`}
+                  className={`h-9 rounded-lg border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/15 dark:bg-black dark:text-white shadow-2xs ${
+                    vertical ? 'sm:w-44' : 'sm:w-56'
+                  }`}
                 />
               </div>
               {!finalizada && (
@@ -753,11 +806,11 @@ export function ActividadesPage() {
                     setCopyError(null);
                     setCopyModalOpen(true);
                   }}
-                  className="flex h-9 items-center gap-1.5 rounded-full border border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-navy-900 shadow-xs"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/20 bg-white dark:bg-black px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-zinc-900"
                   aria-label="Copiar formato de actividades"
                   title="Copiar formato de actividades desde otra ficha"
                 >
-                  <svg className="h-4 w-4 text-navy-900 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <svg className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <span>Copiar formato</span>
@@ -766,201 +819,231 @@ export function ActividadesPage() {
               <button
                 type="button"
                 onClick={() => setFiltrosAbiertos(true)}
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-900"
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-white/20 bg-white dark:bg-black text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-zinc-900 shadow-sm transition-colors"
                 aria-label="Filtros"
-                title="Filtros"
+                title="Filtros de actividades"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 {filtroTipo !== 'todas' && (
-                  <span className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white" aria-hidden="true" />
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-black" aria-hidden="true" />
                 )}
               </button>
               {!finalizada && (
                 <button
                   type="button"
                   onClick={() => handleAddActividad(null)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs sm:text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                   aria-label="Nueva actividad"
-                  title="Nueva actividad"
+                  title="Crear nueva actividad de evaluación"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
+                  <span>+ Nueva Actividad</span>
                 </button>
               )}
             </div>
           </div>
 
-          <Card variant="default" padding="none" className="dark:bg-black">
-            <CardContent className="p-0">
-              <div className="border-y border-gray-200 dark:border-white/10 p-4 pb-8 dark:bg-black rounded-2xl">
-                <table className="w-full table-fixed border-collapse text-sm dark:bg-black">
-                  <colgroup>
-                    <col style={{ width: colPct('nombre') }} />
-                    <col style={{ width: colPct('fecha') }} />
-                    <col style={{ width: colPct('accion') }} />
-                    <col style={{ width: colPct('porcentaje') }} />
-                  </colgroup>
-                  <thead>
-                    <tr className="rounded-xl bg-navy-900 dark:bg-[#071626] text-sm font-semibold text-white">
-                      <th className="relative rounded-l-xl px-4 py-3 text-left truncate">
-                        Nombre
-                        <ResizeHandle onMouseDown={startResize('nombre')} onDoubleClick={() => resetColWidth('nombre')} />
-                      </th>
-                      <th className="relative px-2 py-3 text-center truncate">
-                        Fecha límite
-                        <ResizeHandle onMouseDown={startResize('fecha')} onDoubleClick={() => resetColWidth('fecha')} />
-                      </th>
-                      <th className="relative px-2 py-3 text-center truncate">
-                        Acción
-                        <ResizeHandle onMouseDown={startResize('accion')} onDoubleClick={() => resetColWidth('accion')} />
-                      </th>
-                      <th className="relative rounded-r-xl px-2 py-3 text-center truncate">
-                        Porcentaje
-                        <ResizeHandle onMouseDown={startResize('porcentaje')} onDoubleClick={() => resetColWidth('porcentaje')} />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="dark:bg-black">
-                    {!hayFiltros && rootActividades.map(actividad => renderActividad(actividad))}
-                    {hayFiltros && actividadesVisibles.map(a => (
-                      <tr key={a.id} className="border-b border-gray-100 dark:border-white/10 dark:bg-black align-middle">
-                        <td className="py-3 pl-4 pr-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="h-2 w-2 shrink-0 rounded-full border-2 border-green-600" aria-hidden="true" />
-                            <div className="min-w-0">
-                              <span className="block truncate font-medium">{a.nombre}</span>
-                              {a.parentId && (
-                                <span className="block truncate text-xs text-gray-500 dark:text-slate-400">Sub de {nombresPadre.get(a.parentId) || '…'}</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap tabular-nums text-sm text-gray-500 dark:text-slate-400">
-                            <span className="truncate">{a.fechaLimite ? formatDate(a.fechaLimite) : '—'}</span>
-                            {!finalizada && (
-                              <BotonEditarFecha onClick={() => handleEditActividad(a)} label={`Editar fecha límite de ${a.nombre}`} />
+          {/* Tabla Rediseñada de Estructura de Evaluación */}
+          <div className="rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-black shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] sm:min-w-full table-fixed border-collapse text-sm">
+                <colgroup>
+                  <col style={{ width: colPct('nombre') }} />
+                  <col style={{ width: colPct('fecha') }} />
+                  <col style={{ width: colPct('porcentaje') }} />
+                  <col style={{ width: colPct('accion') }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-[#0B192C] text-emerald-400 text-xs font-semibold uppercase tracking-wider border-y border-[#172a45]">
+                    <th className="relative px-4 py-3 text-left truncate">
+                      Actividad / Categoría
+                      <ResizeHandle onMouseDown={startResize('nombre')} onDoubleClick={() => resetColWidth('nombre')} />
+                    </th>
+                    <th className="relative px-3 py-3 text-center truncate">
+                      Fecha límite
+                      <ResizeHandle onMouseDown={startResize('fecha')} onDoubleClick={() => resetColWidth('fecha')} />
+                    </th>
+                    <th className="relative px-3 py-3 text-center truncate">
+                      Ponderación
+                      <ResizeHandle onMouseDown={startResize('porcentaje')} onDoubleClick={() => resetColWidth('porcentaje')} />
+                    </th>
+                    <th className="relative px-3 py-3 text-right truncate">
+                      Acciones
+                      <ResizeHandle onMouseDown={startResize('accion')} onDoubleClick={() => resetColWidth('accion')} />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-white/10 dark:bg-black">
+                  {!hayFiltros && rootActividades.map(actividad => renderActividad(actividad))}
+                  {hayFiltros && actividadesVisibles.map(a => (
+                    <tr key={a.id} className="border-b border-slate-100 dark:border-white/10 hover:bg-slate-50/60 dark:hover:bg-white/[0.03] align-middle">
+                      <td className="py-3 pl-4 pr-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+                          <div className="min-w-0">
+                            <span className="block truncate font-medium text-slate-800 dark:text-slate-200">{a.nombre}</span>
+                            {a.parentId && (
+                              <span className="block truncate text-xs text-slate-400 dark:text-slate-500">Sub de {nombresPadre.get(a.parentId) || '…'}</span>
                             )}
-                          </span>
-                        </td>
-                        <td className="px-2 py-3">{renderAcciones(a)}</td>
-                        <td className="px-2 py-3 text-center">
-                          <span className="whitespace-nowrap tabular-nums text-sm text-gray-700 dark:text-slate-200">
-                            {a.porcentaje.toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {!hayFiltros && rootActividades.length === 0 && (
-                      <tr className="dark:bg-black">
-                        <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-slate-400">
-                          <p>No hay actividades definidas</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">
+                          <span className="truncate">{a.fechaLimite ? formatDate(a.fechaLimite) : '—'}</span>
                           {!finalizada && (
-                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                              <Button
-                                onClick={() => {
-                                  setIsSubactividad(false);
-                                  setSelectedParentId(null);
-                                  setEditingActividad(null);
-                                  setActividadModalOpen(true);
-                                }}
-                              >
-                                Crear primera actividad
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setCopyError(null);
-                                  setCopyModalOpen(true);
-                                }}
-                              >
-                                Copiar formato de otra ficha
-                              </Button>
-                            </div>
+                            <BotonEditarFecha onClick={() => handleEditActividad(a)} label={`Editar fecha límite de ${a.nombre}`} />
                           )}
-                        </td>
-                      </tr>
-                    )}
-                    {hayFiltros && actividadesVisibles.length === 0 && (
-                      <tr className="dark:bg-black">
-                        <td colSpan={4} className="py-8 text-center">
-                          <p className="text-gray-500 dark:text-slate-400">Sin resultados para la búsqueda o filtros aplicados</p>
-                          <button
-                            type="button"
-                            onClick={limpiarFiltros}
-                            className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            Limpiar búsqueda y filtros
-                          </button>
-                        </td>
-                      </tr>
-                    )}
-                    {!hayFiltros && rootActividades.length > 0 && (
-                      <tr className="dark:bg-black">
-                        <td className="px-4 pt-3 font-bold text-gray-900 dark:text-white">Total</td>
-                        <td />
-                        <td />
-                        <td className="px-2 pt-3 text-center">
-                          <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-navy-900 text-[10px] font-bold text-green-400" aria-hidden="true">%</span>
-                            <span className={`font-bold tabular-nums ${totalPorcentaje === 100 ? 'text-green-700 dark:text-emerald-400' : 'text-yellow-700 dark:text-amber-400'}`}>
-                              {totalPorcentaje.toFixed(1)}%
-                            </span>
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {a.porcentaje.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">{renderAcciones(a)}</td>
+                    </tr>
+                  ))}
+                  {!hayFiltros && rootActividades.length === 0 && (
+                    <tr className="dark:bg-black">
+                      <td colSpan={4} className="py-12 text-center text-slate-500 dark:text-slate-400">
+                        <p className="text-sm font-medium">No hay actividades definidas en esta ficha</p>
+                        {!finalizada && (
+                          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                            <Button
+                              onClick={() => {
+                                setIsSubactividad(false);
+                                setSelectedParentId(null);
+                                setEditingActividad(null);
+                                setActividadModalOpen(true);
+                              }}
+                            >
+                              Crear primera actividad
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setCopyError(null);
+                                setCopyModalOpen(true);
+                              }}
+                            >
+                              Copiar formato de otra ficha
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  {hayFiltros && actividadesVisibles.length === 0 && (
+                    <tr className="dark:bg-black">
+                      <td colSpan={4} className="py-12 text-center">
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Sin resultados para los filtros aplicados</p>
+                        <button
+                          type="button"
+                          onClick={limpiarFiltros}
+                          className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                        >
+                          Restablecer búsqueda y filtros
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                  {!hayFiltros && rootActividades.length > 0 && (
+                    <tr className="bg-slate-50/90 dark:bg-white/[0.02] border-t-2 border-slate-300 dark:border-white/20 font-semibold">
+                      <td className="px-4 py-3 text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300 font-bold">
+                        Total Ponderado
+                      </td>
+                      <td />
+                      <td className="px-3 py-3 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1.5 font-mono text-xs font-bold ${
+                            totalPorcentaje === 100
+                              ? 'text-emerald-700 dark:text-emerald-400'
+                              : 'text-amber-700 dark:text-amber-400'
+                          }`}
+                        >
+                          {totalPorcentaje === 100 ? (
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          )}
+                          <span>{totalPorcentaje.toFixed(1)}%</span>
+                        </span>
+                      </td>
+                      <td />
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
+        {/* SECCIÓN 2: CALIFICACIONES (SÁBANA DE NOTAS) */}
         <div className={vertical ? 'min-w-0 space-y-4 lg:col-span-7' : 'space-y-6'}>
           <div id="seccion-calificaciones" className="flex scroll-mt-24 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Calificaciones</h3>
-              <p className="text-sm text-gray-500 dark:text-slate-400">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Calificaciones</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {fichaNotas
                   ? `${fichaNotas.estudiantes.length} estudiante${fichaNotas.estudiantes.length === 1 ? '' : 's'}`
                   : 'Cargando…'}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-2xs ${
+                  estadoGuardado === 'guardado'
+                    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300'
+                    : estadoGuardado === 'guardando'
+                    ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                }`}
+                title={estadoGuardado === 'pendiente' ? 'Clic para guardar ahora' : undefined}
                 onClick={() => { if (estadoGuardado === 'pendiente') flushTodas(); }}
-                disabled={estadoGuardado !== 'pendiente'}
-                title={estadoGuardado === 'pendiente' ? 'Guardar ahora' : 'Estado del guardado automático'}
-                aria-label={estadoGuardado === 'pendiente' ? 'Guardar cambios ahora' : `Guardado automático: ${estadoGuardado === 'guardando' ? 'guardando' : estadoGuardado === 'guardado' ? 'guardado' : 'sin cambios'}`}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/80 px-3 text-xs font-semibold text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:cursor-default dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
+                role={estadoGuardado === 'pendiente' ? 'button' : undefined}
               >
                 {estadoGuardado === 'guardando' ? (
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" aria-hidden="true" />
+                  <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+                ) : estadoGuardado === 'guardado' ? (
+                  <svg className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
                 ) : (
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${estadoGuardado === 'guardado' ? 'bg-green-500' : estadoGuardado === 'pendiente' ? 'animate-pulse bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                    aria-hidden="true"
-                  />
+                  <span className="h-2 w-2 rounded-full bg-slate-400" />
                 )}
-                {estadoGuardado === 'guardando' ? 'Guardando…' : estadoGuardado === 'guardado' ? 'Guardado' : estadoGuardado === 'pendiente' ? 'Sin guardar' : 'Sin cambios'}
-              </button>
+                <span>
+                  {estadoGuardado === 'guardando'
+                    ? 'Guardando…'
+                    : estadoGuardado === 'guardado'
+                    ? 'Todos los cambios guardados'
+                    : estadoGuardado === 'pendiente'
+                    ? 'Cambios sin guardar'
+                    : 'Sin cambios'}
+                </span>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setExportOpen((v) => !v)}
                 disabled={!fichaNotas}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-900 disabled:opacity-40"
-                aria-label="Exportar"
-                title="Exportar"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/20 bg-white dark:bg-black px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs transition-all hover:bg-slate-50 hover:border-slate-300 dark:hover:bg-zinc-900 disabled:opacity-40"
+                title="Descargar planilla de calificaciones en formato Excel"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
+                <span>Descargar planilla</span>
               </button>
+
               <ExportDialog
                 isOpen={exportOpen}
                 onClose={() => setExportOpen(false)}
@@ -971,27 +1054,21 @@ export function ActividadesPage() {
             </div>
           </div>
 
-          <Card variant="default" padding="none" className="dark:bg-black">
-            <CardContent className="p-0">
-              <div className="border-y border-gray-200 dark:border-white/10 overflow-x-auto p-4 dark:bg-black rounded-2xl">
-                {notasLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent" />
-                  </div>
-                ) : notasError || !fichaNotas ? (
-                  <div className="py-8 text-center text-gray-500 dark:text-slate-400">
-                    <p>No hay datos de notas</p>
-                  </div>
-                ) : (
-                  <NotasTable
-                    data={fichaNotas}
-                    finalizada={finalizada}
-                    onNotaChange={handleNotaChange}
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {notasLoading ? (
+            <div className="flex items-center justify-center py-12 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black">
+              <div className="animate-spin rounded-full h-8 w-8 border-3 border-emerald-600 border-t-transparent" />
+            </div>
+          ) : notasError || !fichaNotas ? (
+            <div className="py-12 text-center rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black text-slate-500 dark:text-slate-400">
+              <p>No hay datos de notas disponibles para esta ficha</p>
+            </div>
+          ) : (
+            <NotasTable
+              data={fichaNotas}
+              finalizada={finalizada}
+              onNotaChange={handleNotaChange}
+            />
+          )}
         </div>
       </div>
 
@@ -999,20 +1076,18 @@ export function ActividadesPage() {
       <Modal
         isOpen={copyModalOpen}
         onClose={() => setCopyModalOpen(false)}
-        title="Copiar formato de actividades"
+        title="Copiar Formato de Actividades"
+        description="Replica la estructura de ponderación y evaluación desde otra ficha"
         size="md"
-        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-        titleClassName="text-lg font-semibold text-white"
-        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-slate-300">
-            Selecciona una ficha para copiar todas sus actividades principales, subactividades y sus porcentajes a{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">{ficha?.nombre || 'esta ficha'}</span>.
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Selecciona una ficha para copiar todas sus actividades principales, subactividades y porcentajes a{' '}
+            <span className="font-semibold text-slate-900 dark:text-white">{ficha?.nombre || 'esta ficha'}</span>.
           </p>
 
           <div>
-            <label htmlFor="select-ficha-origen" className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1.5">
+            <label htmlFor="select-ficha-origen" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
               Ficha de origen
             </label>
             <select
@@ -1022,7 +1097,7 @@ export function ActividadesPage() {
                 setOrigenFichaId(e.target.value);
                 setCopyError(null);
               }}
-              className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-100 focus:border-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-900/20"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/80 px-3.5 py-2.5 text-sm font-medium text-slate-900 dark:text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
             >
               <option value="">Selecciona una ficha…</option>
               {fichasOrigen.map((f) => (
@@ -1034,7 +1109,7 @@ export function ActividadesPage() {
           </div>
 
           {origenFichaId && (
-            <div className="rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-slate-800/60 p-4">
+            <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Vista previa de estructura
               </p>
@@ -1044,39 +1119,47 @@ export function ActividadesPage() {
                 <p className="text-xs text-amber-700 dark:text-amber-300 py-2">Esta ficha no tiene actividades configuradas para copiar.</p>
               ) : (
                 <ul className="max-h-48 overflow-y-auto space-y-2 text-sm">
-                  {origenRoots.map((root) => {
-                    const subs = origenChildrenMap.get(root.id) || [];
-                    return (
-                      <li key={root.id} className="rounded-xl bg-white dark:bg-slate-900 p-2.5 border border-slate-200/60 dark:border-white/10">
-                        <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100">
-                          <span className="truncate">{root.nombre}</span>
-                          <span className="tabular-nums text-green-700 dark:text-green-400 ml-2">{root.porcentaje.toFixed(1)}%</span>
-                        </div>
-                        {subs.length > 0 && (
-                          <ul className="mt-1.5 space-y-1 border-l-2 border-slate-200 dark:border-white/10 pl-3 text-xs text-slate-600 dark:text-slate-300">
-                            {subs.map((s) => (
-                              <li key={s.id} className="flex items-center justify-between">
+                  {(() => {
+                    const renderSubs = (parentId: string): ReactNode => {
+                      const subs = origenChildrenMap.get(parentId) || [];
+                      if (subs.length === 0) return null;
+                      return (
+                        <ul className="mt-1.5 space-y-1 border-l-2 border-slate-200 dark:border-white/10 pl-3 text-xs text-slate-600 dark:text-slate-300">
+                          {subs.map((s) => (
+                            <li key={s.id} className="space-y-1">
+                              <div className="flex items-center justify-between">
                                 <span className="truncate">{s.nombre}</span>
                                 <span className="tabular-nums font-medium">{s.porcentaje.toFixed(1)}%</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                              </div>
+                              {renderSubs(s.id)}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    };
+
+                    return origenRoots.map((root) => (
+                      <li key={root.id} className="rounded-lg bg-white dark:bg-slate-900/90 p-2.5 border border-slate-200/80 dark:border-white/10">
+                        <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100">
+                          <span className="truncate">{root.nombre}</span>
+                          <span className="tabular-nums text-emerald-600 dark:text-emerald-400 ml-2">{root.porcentaje.toFixed(1)}%</span>
+                        </div>
+                        {renderSubs(root.id)}
                       </li>
-                    );
-                  })}
+                    ));
+                  })()}
                 </ul>
               )}
             </div>
           )}
 
           {(actividades?.length ?? 0) > 0 && (
-            <label className="flex items-start gap-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/40 p-3 cursor-pointer">
+            <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black p-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={reemplazarExistentes}
                 onChange={(e) => setReemplazarExistentes(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-navy-900 focus:ring-navy-900"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span className="text-xs text-slate-600 dark:text-slate-300">
                 <strong className="font-semibold text-slate-800 dark:text-white block">Reemplazar actividades actuales</strong>
@@ -1086,24 +1169,30 @@ export function ActividadesPage() {
           )}
 
           {copyError && (
-            <p className="rounded-xl bg-[#a16074]/10 border border-[#a16074]/30 px-3 py-2 text-xs font-medium text-[#a16074]" role="alert">
+            <p className="rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 px-3 py-2 text-xs font-medium text-rose-700 dark:text-rose-400" role="alert">
               {copyError}
             </p>
           )}
 
-          <div className="mt-6 flex justify-end gap-2.5">
-            <Button variant="secondary" size="sm" onClick={() => setCopyModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="navyGreen"
-              size="sm"
-              loading={copiarActividades.isPending}
-              disabled={!origenFichaId || origenRoots.length === 0}
-              onClick={handleCopySubmit}
+          <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 mt-6 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setCopyModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
             >
-              Copiar formato
-            </Button>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={!origenFichaId || origenRoots.length === 0 || copiarActividades.isPending}
+              onClick={handleCopySubmit}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+            >
+              {copiarActividades.isPending && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              )}
+              <span>Copiar Formato</span>
+            </button>
           </div>
         </div>
       </Modal>
@@ -1112,14 +1201,14 @@ export function ActividadesPage() {
         isOpen={filtrosAbiertos}
         onClose={() => setFiltrosAbiertos(false)}
         title="Filtros"
+        description="Filtra las actividades por tipo o categoría"
         size="sm"
-        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-        titleClassName="text-lg font-semibold text-white"
-        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
         <div>
-          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-slate-200">Tipo</p>
-          <div className="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Filtrar por tipo de actividad">
+          <label className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-2 block">
+            Tipo de Actividad
+          </label>
+          <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 p-1" role="group" aria-label="Filtrar por tipo de actividad">
             {([
               { valor: 'todas', etiqueta: 'Todas' },
               { valor: 'principales', etiqueta: 'Principales' },
@@ -1130,8 +1219,10 @@ export function ActividadesPage() {
                 type="button"
                 onClick={() => setFiltroTipo(op.valor)}
                 aria-pressed={filtroTipo === op.valor}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  filtroTipo === op.valor ? 'bg-navy-900 text-green-400' : 'text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200'
+                className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-colors ${
+                  filtroTipo === op.valor
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {op.etiqueta}
@@ -1139,28 +1230,54 @@ export function ActividadesPage() {
             ))}
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={limpiarFiltros}>Limpiar</Button>
-          <Button variant="danger" onClick={() => setFiltrosAbiertos(false)}>Cerrar</Button>
+        <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={limpiarFiltros}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
+          >
+            Limpiar
+          </button>
+          <button
+            type="button"
+            onClick={() => setFiltrosAbiertos(false)}
+            className="px-5 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          >
+            Listo
+          </button>
         </div>
       </Modal>
 
       <Modal
         isOpen={deletingActividad !== null}
         onClose={() => setDeletingActividad(null)}
-        title="Eliminar actividad"
+        title="Eliminar Actividad"
+        description="Esta acción eliminará la actividad y sus registros asociados"
         size="sm"
-        headerClassName="flex items-center justify-between rounded-t-3xl bg-navy-900 px-5 py-4"
-        titleClassName="text-lg font-semibold text-white"
-        closeButtonClassName="rounded-full p-1.5 text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
       >
-        <p className="text-sm text-gray-700 dark:text-slate-200">
-          ¿Eliminar <span className="font-bold text-gray-900 dark:text-white">“{deletingActividad?.nombre}”</span>?
-          Se eliminarán también sus subactividades y calificaciones.
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          ¿Estás seguro de eliminar <span className="font-semibold text-slate-900 dark:text-white">“{deletingActividad?.nombre}”</span>?
+          Se eliminarán también sus subactividades y calificaciones asociadas.
         </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={() => setDeletingActividad(null)}>Cancelar</Button>
-          <Button type="button" variant="danger" loading={deleteActividad.isPending} onClick={handleDeleteActividad}>Eliminar</Button>
+        <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setDeletingActividad(null)}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteActividad}
+            disabled={deleteActividad.isPending}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+          >
+            {deleteActividad.isPending && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            )}
+            <span>Eliminar</span>
+          </button>
         </div>
       </Modal>
 
@@ -1169,6 +1286,7 @@ export function ActividadesPage() {
         onClose={closeModal}
         onSubmit={handleActividadSubmit}
         initialData={editingActividad ? {
+          id: editingActividad.id,
           parentId: editingActividad.parentId,
           nombre: editingActividad.nombre,
           fechaLimite: editingActividad.fechaLimite,
@@ -1176,9 +1294,9 @@ export function ActividadesPage() {
           orden: editingActividad.orden,
         } : (isSubactividad && selectedParentId ? { parentId: selectedParentId } : undefined)}
         isLoading={createActividad.isPending || updateActividad.isPending}
-        title={editingActividad ? 'Editar actividad' : (isSubactividad ? 'Nueva subactividad' : 'Nueva actividad principal')}
         parentOptions={parentOptions}
         isSubactividad={isSubactividad}
+        porcentajeDisponible={porcentajeDisponible}
       />
     </div>
   );

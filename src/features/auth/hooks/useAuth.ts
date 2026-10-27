@@ -36,6 +36,12 @@ export function useLogout() {
     onSuccess: () => {
       clearAuth();
       queryClient.clear();
+      window.location.href = '/login';
+    },
+    onError: () => {
+      clearAuth();
+      queryClient.clear();
+      window.location.href = '/login';
     },
   });
 }

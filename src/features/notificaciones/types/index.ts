@@ -1,4 +1,4 @@
-export type NotificacionTipo = 'clase_proxima' | 'actividad_por_expirar' | 'ficha_culminada';
+export type NotificacionTipo = 'clase_proxima' | 'actividad_por_expirar' | 'ficha_culminada' | 'riesgo_desercion';
 
 export interface Notificacion {
   id: string;

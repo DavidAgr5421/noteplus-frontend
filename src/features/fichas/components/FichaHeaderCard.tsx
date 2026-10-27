@@ -78,7 +78,7 @@ export function FichaHeaderCard({ ficha, onOpenDetalle, onBack }: FichaHeaderCar
       }}
       title={`Ir al detalle de ${ficha.nombre}`}
       aria-label={`Ir al detalle de la ficha ${ficha.nombre}`}
-      className="group w-full rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/95 dark:bg-slate-900/95 p-4 text-left shadow-xs transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:border-navy-900/40 hover:shadow-md hover:ring-1 hover:ring-navy-900/20 focus:outline-none focus:ring-2 focus:ring-navy-900/30"
+      className="group w-full rounded-2xl border border-slate-200/70 dark:border-white/15 bg-white/95 dark:bg-black p-4 text-left shadow-xs transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:border-navy-900/40 hover:shadow-md hover:ring-1 hover:ring-navy-900/20 focus:outline-none focus:ring-2 focus:ring-navy-900/30"
     >
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {onBack && (
@@ -91,9 +91,9 @@ export function FichaHeaderCard({ ficha, onOpenDetalle, onBack }: FichaHeaderCar
             onKeyDown={(e) => e.stopPropagation()}
             aria-label="Volver"
             title="Volver"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-900 text-green-400 hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-slate-300 dark:border-white/20 bg-white dark:bg-black text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-900/40"
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
